@@ -1,0 +1,117 @@
+<navigation-bar title="证件照工具" back="{{true}}" color="black" background="#FFF"></navigation-bar>
+
+<view class="container">
+  <!-- 顶部指引 -->
+  <view class="guide-tip">上传照片 → 选择规格/背景 → 生成保存</view>
+
+  <!-- 核心预览区 -->
+  <view class="preview-area">
+    <view class="canvas-box" style="width: {{previewWidth}}px; height: {{previewHeight}}px; background-color: {{backgroundColor}};">
+      <!-- 底层 Canvas 用于最终生成 -->
+      <canvas type="2d" id="photoCanvas" class="photo-canvas"></canvas>
+      
+      <!-- 交互层：显示图片并支持手势 -->
+      <!-- 使用 cover-view 或 view 模拟遮罩 -->
+      <image 
+        class="user-photo" 
+        src="{{tempImagePath}}" 
+        mode="widthFix" 
+        style="width: {{imgWidth}}px; height: {{imgHeight}}px; transform: translate({{imgX}}px, {{imgY}}px) scale({{imgScale}}) rotate({{imgRotate}}deg);"
+        bindtouchstart="onTouchStart"
+        bindtouchmove="onTouchMove"
+        bindtouchend="onTouchEnd"
+        wx:if="{{tempImagePath}}"
+      ></image>
+      
+      <!-- 辅助线/遮罩 -->
+      <view class="guide-overlay" wx:if="{{tempImagePath}}">
+        <view class="guide-line head-line"></view>
+        <view class="guide-line chin-line"></view>
+        <view class="guide-center"></view>
+      </view>
+
+      <!-- 空状态 -->
+      <view class="empty-state" wx:if="{{!tempImagePath}}" bindtap="chooseImage">
+        <view class="icon-camera">📷</view>
+        <text>点击上传照片</text>
+        <text class="sub-text">支持拖拽/缩放调整</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 操作控制区 -->
+  <view class="controls-area safe-area-bottom">
+    <!-- 顶部工具栏 -->
+    <view class="toolbar" wx:if="{{tempImagePath}}">
+      <view class="tool-item" bindtap="rotateImage">
+        <text class="tool-icon">↻</text>
+        <text>旋转</text>
+      </view>
+      <view class="tool-item" bindtap="resetImage">
+        <text class="tool-icon">↺</text>
+        <text>重置</text>
+      </view>
+    </view>
+
+    <!-- 选项卡 -->
+    <view class="tabs">
+      <view class="tab-item {{currentTab === 'spec' ? 'active' : ''}}" bindtap="switchTab" data-tab="spec">规格</view>
+      <view class="tab-item {{currentTab === 'bg' ? 'active' : ''}}" bindtap="switchTab" data-tab="bg">背景</view>
+    </view>
+
+    <!-- 规格选择 -->
+    <scroll-view class="options-scroll" scroll-x enable-flex wx:if="{{currentTab === 'spec'}}">
+      <view class="option-card {{currentSpec.id === item.id ? 'active' : ''}}" 
+            wx:for="{{specs}}" wx:key="id" 
+            bindtap="setSpec" data-id="{{item.id}}">
+        <text class="opt-name">{{item.name}}</text>
+        <text class="opt-desc">{{item.width}}x{{item.height}}mm</text>
+        <text class="opt-px">{{item.pxWidth}}x{{item.pxHeight}}px</text>
+      </view>
+    </scroll-view>
+
+    <!-- 背景选择 -->
+    <scroll-view class="options-scroll" scroll-x enable-flex wx:if="{{currentTab === 'bg'}}">
+      <view class="color-circle {{backgroundColor === item.color ? 'active' : ''}}" 
+            wx:for="{{colors}}" wx:key="color" 
+            style="background: {{item.color}};"
+            bindtap="setBg" data-color="{{item.color}}">
+        <view class="check-mark" wx:if="{{backgroundColor === item.color}}">✓</view>
+      </view>
+      <!-- 自定义颜色 -->
+      <view class="color-circle custom" bindtap="toggleColorPicker" style="background: linear-gradient(135deg, #f09, #09f);">
+        <text wx:if="{{!showColorPicker}}">+</text>
+      </view>
+    </scroll-view>
+
+    <!-- 底部按钮 -->
+    <view class="btn-group">
+      <button class="btn secondary" bindtap="chooseImage" wx:if="{{tempImagePath}}">换一张</button>
+      <button class="btn primary" bindtap="savePhoto" disabled="{{!tempImagePath}}">生成保存</button>
+    </view>
+  </view>
+  
+  <!-- 历史记录入口 (浮窗或抽屉) -->
+  <view class="history-btn" bindtap="showHistory">历史</view>
+</view>
+
+<!-- 历史记录弹窗 -->
+<page-container show="{{showHistoryPanel}}" round position="bottom" bind:clickoverlay="hideHistory">
+  <view class="history-panel">
+    <view class="panel-header">
+      <text>最近生成</text>
+      <view class="clear-btn" bindtap="clearHistory">清空</view>
+    </view>
+    <scroll-view scroll-y class="history-list">
+      <view class="history-item" wx:for="{{historyList}}" wx:key="timestamp">
+        <image class="history-thumb" src="{{item.path}}" mode="aspectFit" bindtap="previewHistory" data-url="{{item.path}}"></image>
+        <view class="history-info">
+          <text class="h-name">{{item.specName}}</text>
+          <text class="h-date">{{item.dateStr}}</text>
+        </view>
+        <view class="h-save" bindtap="saveHistoryImage" data-path="{{item.path}}">保存</view>
+      </view>
+      <view class="empty-tip" wx:if="{{historyList.length === 0}}">暂无历史记录</view>
+    </scroll-view>
+  </view>
+</page-container>

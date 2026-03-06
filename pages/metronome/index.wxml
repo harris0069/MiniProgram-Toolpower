@@ -1,0 +1,174 @@
+<navigation-bar title="节拍器" back="{{true}}" color="black" background="#F8F7F4"></navigation-bar>
+
+<view class="container" bindtap="onTapBlank" bindlongpress="onLongPress">
+  <!-- 核心BPM显示区 -->
+  <view class="bpm-section">
+    <view class="bpm-display" bindtap="toggleBpmInput">
+      <text class="bpm-value">{{bpm}}</text>
+      <text class="unit">BPM</text>
+      <view class="edit-icon">✎</view>
+    </view>
+    
+    <!-- 倒计时显示 -->
+    <view class="timer-display" wx:if="{{timerDuration > 0}}">
+      <text class="timer-text">⏱ {{formattedRemainingTime}}</text>
+    </view>
+  </view>
+
+  <!-- 可视化节拍指示器 -->
+  <view class="beat-visualizer" wx:if="{{visualMode !== 'none'}}">
+    <!-- 圆点模式 -->
+    <block wx:if="{{visualMode === 'dot' || !visualMode}}">
+      <view class="beat-dot {{index === currentBeatIndex ? 'active' : ''}} {{index === 0 ? 'accent' : ''}}" 
+            wx:for="{{timeSignature[0]}}" wx:key="*this"></view>
+    </block>
+
+    <!-- 波形模式 (模拟声波跳动) -->
+    <block wx:elif="{{visualMode === 'line'}}">
+       <view class="waveform-container beat-{{currentBeatIndex % 4}} {{currentBeatIndex === 0 ? 'accent' : ''}}">
+          <view class="wave-bar" wx:for="{{5}}" wx:key="*this"></view>
+       </view>
+    </block>
+
+    <!-- 数字模式 -->
+    <block wx:elif="{{visualMode === 'number'}}">
+      <view class="beat-number {{currentBeatIndex === 0 ? 'accent' : ''}}">
+        {{currentBeatIndex + 1}}
+      </view>
+    </block>
+  </view>
+
+  <!-- 滑动条与微调 -->
+  <view class="slider-container">
+    <view class="adjust-btn" hover-class="btn-hover" bindtap="decreaseBpm" bindlongpress="startDecrease" bindtouchend="stopAdjust">
+      <text>-</text>
+    </view>
+    <slider class="bpm-slider" min="30" max="250" value="{{bpm}}" block-size="24" 
+            activeColor="#1A5F4A" backgroundColor="#E7E5E4" block-color="#FFFFFF"
+            bindchanging="onBpmChanging" bindchange="onBpmChange"/>
+    <view class="adjust-btn" hover-class="btn-hover" bindtap="increaseBpm" bindlongpress="startIncrease" bindtouchend="stopAdjust">
+      <text>+</text>
+    </view>
+  </view>
+
+  <!-- 节拍选择卡片 -->
+  <view class="rhythm-selector">
+    <view class="rhythm-card {{beatTypeIndex === index ? 'selected' : ''}}" 
+          wx:for="{{beatTypes}}" wx:key="name" 
+          bindtap="setBeatType" data-index="{{index}}">
+      <view class="rhythm-title">{{item.name}}</view>
+      <view class="rhythm-sub">{{item.desc}}</view>
+    </view>
+  </view>
+
+  <!-- 底部悬浮操作栏 -->
+  <view class="bottom-bar">
+    <view class="icon-btn" bindtap="resetSettings">
+      <image class="icon" src="/assets/icons/reset.svg" wx:if="{{false}}"></image> <!-- 暂无 SVG 资源，用文字代替 -->
+      <text style="font-size: 20px; color: #57534E;">↺</text>
+    </view>
+    
+    <view class="play-button {{isPlaying ? 'playing' : ''}}" catchtap="togglePlay">
+      <view class="icon">{{isPlaying ? 'II' : '▶'}}</view>
+    </view>
+    
+    <view class="icon-btn" bindtap="showSettings">
+      <text style="font-size: 20px; color: #57534E;">⚙</text>
+    </view>
+  </view>
+</view>
+
+<!-- 底部抽屉：设置面板 -->
+<page-container show="{{showSettingsPanel}}" round position="bottom" bind:clickoverlay="hideSettings" custom-style="border-radius: 24px 24px 0 0; overflow: hidden;">
+  <view class="settings-drawer">
+    <view class="drawer-header">
+      <text class="drawer-title">设置</text>
+      <view class="close-btn" bindtap="hideSettings">×</view>
+    </view>
+    
+    <scroll-view scroll-y class="drawer-content">
+      <!-- 音色选择 -->
+      <view class="setting-section">
+        <view class="section-title">音色</view>
+        <view class="chips-row">
+          <view class="chip {{soundType === item.id ? 'selected' : ''}}" 
+                wx:for="{{soundTypes}}" wx:key="id" 
+                bindtap="setSoundType" data-id="{{item.id}}">{{item.name}}</view>
+        </view>
+      </view>
+
+      <!-- 视觉反馈 -->
+      <view class="setting-section">
+        <view class="section-title">视觉模式</view>
+        <view class="chips-row">
+          <view class="chip {{visualMode === 'dot' ? 'selected' : ''}}" bindtap="setVisualMode" data-mode="dot">圆点</view>
+          <view class="chip {{visualMode === 'line' ? 'selected' : ''}}" bindtap="setVisualMode" data-mode="line">波形</view>
+          <view class="chip {{visualMode === 'number' ? 'selected' : ''}}" bindtap="setVisualMode" data-mode="number">数字</view>
+          <view class="chip {{visualMode === 'none' ? 'selected' : ''}}" bindtap="setVisualMode" data-mode="none">关闭</view>
+        </view>
+      </view>
+
+      <!-- 倒计时启动 -->
+      <view class="setting-section">
+        <view class="section-title">倒计时启动</view>
+        <view class="chips-row">
+          <view class="chip {{countdownSet === 0 ? 'selected' : ''}}" bindtap="setCountdown" data-val="{{0}}">无</view>
+          <view class="chip {{countdownSet === 3 ? 'selected' : ''}}" bindtap="setCountdown" data-val="{{3}}">3s</view>
+          <view class="chip {{countdownSet === 5 ? 'selected' : ''}}" bindtap="setCountdown" data-val="{{5}}">5s</view>
+          <view class="chip {{countdownSet === 10 ? 'selected' : ''}}" bindtap="setCountdown" data-val="{{10}}">10s</view>
+        </view>
+      </view>
+
+      <!-- 定时停止 -->
+      <view class="setting-section">
+        <view class="section-title">定时停止</view>
+        <view class="chips-row">
+          <view class="chip {{timerDuration === 0 ? 'selected' : ''}}" bindtap="setTimer" data-val="{{0}}">无</view>
+          <view class="chip {{timerDuration === 5 ? 'selected' : ''}}" bindtap="setTimer" data-val="{{5}}">5分</view>
+          <view class="chip {{timerDuration === 10 ? 'selected' : ''}}" bindtap="setTimer" data-val="{{10}}">10分</view>
+          <view class="chip {{timerDuration === 30 ? 'selected' : ''}}" bindtap="setTimer" data-val="{{30}}">30分</view>
+          <view class="chip {{(timerDuration > 0 && timerDuration !== 5 && timerDuration !== 10 && timerDuration !== 30) ? 'selected' : ''}}" bindtap="showCustomTimerInput">
+            {{(timerDuration > 0 && timerDuration !== 5 && timerDuration !== 10 && timerDuration !== 30) ? customTimerLabel : '自定义'}}
+          </view>
+        </view>
+      </view>
+      
+      <!-- 常用预设 -->
+      <view class="setting-section">
+        <view class="section-title">常用预设 (长按保存)</view>
+        <view class="presets-row">
+          <view class="preset-card" wx:for="{{presets}}" wx:key="index" bindtap="loadPreset" bindlongpress="savePreset" data-index="{{index}}">
+            <text class="preset-name">{{item.name || '空位 ' + (index+1)}}</text>
+            <text class="preset-detail" wx:if="{{item.bpm}}">{{item.bpm}} BPM</text>
+          </view>
+        </view>
+      </view>
+
+      <!-- 开关项 -->
+      <view class="setting-section">
+        <view class="switch-row">
+          <text class="switch-label">震动反馈</text>
+          <switch checked="{{vibrateEnabled}}" color="#1A5F4A" bindchange="toggleVibrate"/>
+        </view>
+        <view class="switch-row">
+          <text class="switch-label">屏幕常亮</text>
+          <switch checked="{{screenOn}}" color="#1A5F4A" bindchange="toggleScreenOn"/>
+        </view>
+        <view class="switch-row">
+          <text class="switch-label">渐变加速模式</text>
+          <switch checked="{{gradientMode}}" color="#1A5F4A" bindchange="toggleGradientMode"/>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+</page-container>
+
+<!-- BPM 输入弹窗 -->
+<modal hidden="{{!showBpmInput}}" title="设置速度 (BPM)" confirm-text="确定" cancel-text="取消" bindconfirm="confirmBpmInput" bindcancel="cancelBpmInput">
+  <input class="modal-input" type="number" placeholder="30-250" value="{{tempBpm}}" bindinput="onTempBpmInput" focus="{{showBpmInput}}"/>
+</modal>
+
+<!-- 自定义定时弹窗 -->
+<modal hidden="{{!showTimerInput}}" title="自定义时长 (分钟)" confirm-text="确定" cancel-text="取消" bindconfirm="confirmTimerInput" bindcancel="cancelTimerInput">
+  <input class="modal-input" type="number" placeholder="1-180" value="{{tempTimer}}" bindinput="onTempTimerInput" focus="{{showTimerInput}}"/>
+</modal>

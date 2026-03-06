@@ -1,0 +1,8 @@
+<view class="container">
+  <view class="tool-grid">
+    <view class="tool-item" wx:for="{{tools}}" wx:key="page" data-page="{{item.page}}" bindtap="navigateToTool">
+      <image class="tool-icon" src="{{item.icon}}" mode="aspectFit"/>
+      <text class="tool-name">{{item.name}}</text>
+    </view>
+  </view>
+</view>

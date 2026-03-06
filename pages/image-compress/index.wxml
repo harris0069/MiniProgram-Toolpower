@@ -1,0 +1,80 @@
+<navigation-bar title="图片压缩工具" back="{{true}}" color="black" background="#FFF"></navigation-bar>
+
+<view class="container">
+  <!-- 顶部操作区：添加图片 -->
+  <view class="action-area" wx:if="{{images.length < 3}}">
+    <view class="add-btn" bindtap="chooseImage">
+      <view class="icon-plus">+</view>
+      <text>添加图片 ({{images.length}}/3)</text>
+    </view>
+    <view class="tips" wx:if="{{images.length === 0}}">支持JPG/PNG，单张最大20MB</view>
+  </view>
+
+  <!-- 图片列表区 -->
+  <scroll-view class="image-list" scroll-y wx:if="{{images.length > 0}}">
+    <view class="image-item" wx:for="{{images}}" wx:key="tempFilePath">
+      <!-- 预览图容器 -->
+      <view class="preview-box">
+        <image class="thumb" src="{{item.tempFilePath}}" mode="aspectFit" style="transform: rotate({{item.rotation}}deg);" bindtap="previewImage" data-index="{{index}}"></image>
+        <view class="remove-btn" catchtap="removeImage" data-index="{{index}}">×</view>
+        <view class="rotate-btn" catchtap="rotateImage" data-index="{{index}}">↻</view>
+      </view>
+      
+      <!-- 信息展示 -->
+      <view class="info-box">
+        <view class="info-row">
+          <text class="label">原图:</text>
+          <text class="value">{{item.originalSizeStr}} | {{item.width}}x{{item.height}}</text>
+        </view>
+        <view class="info-row highlight" wx:if="{{item.compressedFilePath}}">
+          <text class="label">压缩后:</text>
+          <text class="value">{{item.compressedSizeStr}} | {{item.cWidth}}x{{item.cHeight}}</text>
+        </view>
+        <view class="info-row" wx:if="{{item.compressedFilePath}}">
+          <text class="label">压缩率:</text>
+          <text class="value green">-{{item.compressionRate}}%</text>
+        </view>
+        <view class="status-badge" wx:if="{{item.status === 'processing'}}">压缩中...</view>
+        <view class="status-badge error" wx:if="{{item.status === 'error'}}">失败</view>
+      </view>
+    </view>
+  </scroll-view>
+
+  <!-- 配置面板 -->
+  <view class="settings-panel">
+    <view class="setting-item">
+      <text class="setting-label">压缩质量: {{quality}}%</text>
+      <slider class="setting-slider" min="30" max="100" value="{{quality}}" block-size="20" activeColor="#07c160" bindchanging="onQualityChange" bindchange="onQualityChange" />
+      <view class="quick-tags">
+        <view class="tag {{quality===80?'active':''}}" bindtap="setQuality" data-val="{{80}}">高清80%</view>
+        <view class="tag {{quality===60?'active':''}}" bindtap="setQuality" data-val="{{60}}">标准60%</view>
+        <view class="tag {{quality===40?'active':''}}" bindtap="setQuality" data-val="{{40}}">迷你40%</view>
+      </view>
+    </view>
+
+    <view class="setting-item">
+      <text class="setting-label">尺寸缩放</text>
+      <view class="radio-group">
+        <view class="radio-tag {{scale===1?'active':''}}" bindtap="setScale" data-val="{{1}}">原图</view>
+        <view class="radio-tag {{scale===0.75?'active':''}}" bindtap="setScale" data-val="{{0.75}}">75%</view>
+        <view class="radio-tag {{scale===0.5?'active':''}}" bindtap="setScale" data-val="{{0.5}}">50%</view>
+        <view class="radio-tag {{scale===0.25?'active':''}}" bindtap="setScale" data-val="{{0.25}}">25%</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部按钮 -->
+  <view class="footer-bar safe-area-bottom">
+    <view class="btn-group">
+      <button class="btn secondary" bindtap="startCompress" disabled="{{images.length === 0 || isProcessing}}">
+        {{isProcessing ? '压缩中...' : (hasCompressed ? '重新压缩' : '开始压缩')}}
+      </button>
+      <button class="btn primary" bindtap="saveAll" disabled="{{!hasCompressed || isProcessing}}">
+        批量保存
+      </button>
+    </view>
+  </view>
+</view>
+
+<!-- 隐藏的 Canvas 用于压缩 -->
+<canvas type="2d" id="compressCanvas" style="position: absolute; left: -9999px; top: -9999px; width: 4000px; height: 4000px;"></canvas>

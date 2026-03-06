@@ -1,0 +1,67 @@
+<navigation-bar title="电子印章" back="{{true}}" color="black" background="#F8F7F4"></navigation-bar>
+
+<scroll-view class="container" scroll-y>
+  <!-- 顶部提示 -->
+  <view class="guide-tip">输入文字 → 生成印章 → 保存透明底图</view>
+
+  <!-- 预览区域 -->
+  <view class="preview-card">
+    <view class="canvas-wrapper">
+      <canvas type="2d" id="sealCanvas" class="seal-canvas"></canvas>
+    </view>
+    <view class="preview-label">预览效果</view>
+  </view>
+
+  <!-- 配置区域 -->
+  <view class="config-card">
+    <view class="section-title">印章内容</view>
+    
+    <!-- 公司名称 -->
+    <view class="input-group">
+      <text class="label">主文字 (公司名)</text>
+      <input class="input-field" value="{{companyName}}" bindinput="onCompanyInput" placeholder="请输入公司/组织名称" maxlength="20"/>
+    </view>
+
+    <!-- 底部编码 -->
+    <view class="input-group">
+      <text class="label">底部文字 (编码)</text>
+      <input class="input-field" value="{{securityCode}}" bindinput="onCodeInput" placeholder="如：1101050000000" maxlength="18" type="number"/>
+    </view>
+
+    <!-- 中心文字 -->
+    <view class="input-group">
+      <text class="label">中心文字 (类型)</text>
+      <input class="input-field" value="{{centerText}}" bindinput="onCenterInput" placeholder="如：专用章" maxlength="8"/>
+    </view>
+
+    <view class="section-title" style="margin-top: 30rpx;">样式设置</view>
+    
+    <!-- 颜色选择 -->
+    <view class="color-selector">
+      <view class="color-item {{color === '#FF0000' ? 'active' : ''}}" bindtap="setColor" data-color="#FF0000">
+        <view class="color-dot" style="background: #FF0000;"></view>
+        <text>标准红</text>
+      </view>
+      <view class="color-item {{color === '#0055AA' ? 'active' : ''}}" bindtap="setColor" data-color="#0055AA">
+        <view class="color-dot" style="background: #0055AA;"></view>
+        <text>商务蓝</text>
+      </view>
+      <view class="color-item {{color === '#000000' ? 'active' : ''}}" bindtap="setColor" data-color="#000000">
+        <view class="color-dot" style="background: #000000;"></view>
+        <text>黑色</text>
+      </view>
+    </view>
+
+    <!-- 形状选择 -->
+    <view class="shape-selector">
+      <view class="shape-item {{shape === 'circle' ? 'active' : ''}}" bindtap="setShape" data-shape="circle">圆形公章</view>
+      <view class="shape-item {{shape === 'oval' ? 'active' : ''}}" bindtap="setShape" data-shape="oval">椭圆专用章</view>
+    </view>
+  </view>
+
+  <!-- 底部操作栏 -->
+  <view class="action-bar">
+    <button class="btn secondary" bindtap="reset">重置</button>
+    <button class="btn primary" bindtap="saveImage">保存到相册</button>
+  </view>
+</scroll-view>

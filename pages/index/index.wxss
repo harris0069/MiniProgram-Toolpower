@@ -1,0 +1,42 @@
+.container {
+  padding: 20rpx;
+  background-color: #f4f4f4;
+  min-height: 100vh;
+}
+
+.tool-grid {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+}
+
+.tool-item {
+  width: calc(50% - 20rpx);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background-color: #fff;
+  margin-bottom: 30rpx;
+  padding: 40rpx 20rpx;
+  border-radius: 16rpx;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.05);
+  transition: transform 0.2s ease-in-out;
+  box-sizing: border-box;
+}
+
+.tool-item:active {
+  transform: scale(0.98);
+}
+
+.tool-icon {
+  width: 100rpx;
+  height: 100rpx;
+  margin-bottom: 20rpx;
+}
+
+.tool-name {
+  font-size: 28rpx;
+  color: #333;
+  font-weight: 500;
+}

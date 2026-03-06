@@ -1,0 +1,8 @@
+{
+  "usingComponents": {
+    "navigation-bar": "/components/navigation-bar/navigation-bar"
+  },
+  "navigationBarTitleText": "BMI健康计算器",
+  "renderer": "skyline",
+  "componentFramework": "glass-easel"
+}

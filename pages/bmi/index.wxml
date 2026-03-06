@@ -1,0 +1,225 @@
+<navigation-bar title="BMI健康计算器" back="{{true}}" color="black" background="#F5F2EF"></navigation-bar>
+
+<scroll-view class="container" scroll-y>
+  <!-- 顶部指引 -->
+  <view class="guide-tip">输入身高体重 → 点击计算 → 查看健康建议</view>
+  
+  <!-- 输入区域 -->
+  <view class="input-card">
+    <view class="card-header">
+      <view class="limit-entry" bindtap="showLimit">
+        <text class="icon">⚠️</text>
+        <text>局限性说明</text>
+      </view>
+      <view class="history-entry" bindtap="showHistory">
+        <text class="history-icon">🕒</text>
+        <text>历史记录</text>
+      </view>
+    </view>
+    
+    <!-- 身高输入 -->
+    <view class="input-group">
+      <view class="input-label">身高 <text class="unit-text">(cm)</text></view>
+      <view class="input-wrapper {{heightFocus ? 'focused' : ''}}">
+        <input type="digit" class="input-field" value="{{height}}" bindinput="onHeightInput" bindfocus="onHeightFocus" bindblur="onHeightBlur" placeholder="0" />
+        <view class="clear-btn" wx:if="{{height}}" bindtap="clearHeight">×</view>
+      </view>
+      <slider class="slider" min="100" max="250" step="0.5" value="{{height || 170}}" activeColor="#D4B98C" backgroundColor="#E5E5E5" block-size="20" block-color="#D4B98C" bindchanging="onHeightSlider" bindchange="onHeightSlider"/>
+    </view>
+
+    <!-- 体重输入 -->
+    <view class="input-group">
+      <view class="input-label">体重 <text class="unit-text">(kg)</text></view>
+      <view class="input-wrapper {{weightFocus ? 'focused' : ''}}">
+        <input type="digit" class="input-field" value="{{weight}}" bindinput="onWeightInput" bindfocus="onWeightFocus" bindblur="onWeightBlur" placeholder="0" />
+        <view class="clear-btn" wx:if="{{weight}}" bindtap="clearWeight">×</view>
+      </view>
+      <slider class="slider" min="30" max="200" step="0.1" value="{{weight || 60}}" activeColor="#D4B98C" backgroundColor="#E5E5E5" block-size="20" block-color="#D4B98C" bindchanging="onWeightSlider" bindchange="onWeightSlider"/>
+    </view>
+
+    <!-- 按钮组 -->
+    <view class="btn-group">
+      <button class="btn reset" bindtap="reset">重置</button>
+      <button class="btn submit" bindtap="calculate" disabled="{{!height || !weight}}">计算BMI</button>
+    </view>
+  </view>
+
+  <!-- 结果展示区 -->
+  <view class="result-section" wx:if="{{bmiResult}}">
+    <view class="result-card">
+      <view class="result-header">
+        <view class="bmi-main">
+          <text class="bmi-val">{{bmiResult}}</text>
+          <text class="bmi-label">BMI指数</text>
+        </view>
+        <view class="status-badge {{statusClass}}">{{healthStatus}}</view>
+      </view>
+      
+      <view class="divider"></view>
+      
+      <view class="info-grid">
+        <view class="info-item">
+          <text class="label">健康范围</text>
+          <text class="value">18.5 - 23.9</text>
+        </view>
+        <view class="info-item" wx:if="{{targetDiff}}">
+          <text class="label">目标差异</text>
+          <text class="value highlight">{{targetDiff}}</text>
+        </view>
+      </view>
+
+      <view class="health-advice">
+        <view class="advice-title">
+          <text class="icon">🩺</text> 健康建议
+        </view>
+        <text class="advice-content">{{healthAdvice}}</text>
+      </view>
+
+      <!-- 进阶功能区 -->
+      <view class="action-row">
+        <view class="action-btn secondary" bindtap="saveRecord">
+          <text>📥 保存记录</text>
+        </view>
+        <button class="action-btn primary" open-type="share">
+          <text>📤 分享结果</text>
+        </button>
+      </view>
+    </view>
+
+    <!-- 目标设置 (进阶) -->
+    <view class="target-card">
+      <view class="card-title">🎯 目标设置</view>
+      <view class="target-body">
+        <view class="target-input-row">
+          <text class="label">目标 BMI</text>
+          <input class="target-input" type="digit" value="{{targetBMI}}" bindinput="onTargetInput" placeholder="22.0"/>
+        </view>
+        <view class="target-tip">标准建议值: 22.0</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 底部占位，防止遮挡 -->
+  <view class="footer-spacer"></view>
+
+  <!-- 页面底部功能入口 (跟随滚动) -->
+  <view class="page-footer-links">
+    <view class="link-item" bindtap="showTips">
+      <text class="icon">💡</text>
+      <text>什么是 BMI？</text>
+    </view>
+  </view>
+</scroll-view>
+
+<!-- 历史记录弹窗 -->
+<page-container show="{{showHistoryPanel}}" round position="bottom" bind:clickoverlay="hideHistory">
+  <view class="history-panel">
+    <view class="panel-header">
+      <text>历史记录</text>
+      <view class="clear-btn" bindtap="clearHistory">清空</view>
+    </view>
+    <scroll-view scroll-y class="history-list">
+      <view class="history-item" wx:for="{{historyList}}" wx:key="timestamp">
+        <view class="h-left">
+          <text class="h-bmi">{{item.bmi}}</text>
+          <text class="h-status {{item.statusClass}}">{{item.status}}</text>
+        </view>
+        <view class="h-right">
+          <text class="h-date">{{item.date}}</text>
+          <text class="h-detail">{{item.height}}cm | {{item.weight}}kg</text>
+        </view>
+        <view class="h-delete" bindtap="deleteHistoryItem" data-index="{{index}}">×</view>
+      </view>
+      <view class="empty-tip" wx:if="{{historyList.length === 0}}">暂无记录</view>
+    </scroll-view>
+  </view>
+</page-container>
+
+<!-- 局限性提醒弹窗 (自定义 CSS 实现，避免 page-container 冲突) -->
+<view class="custom-modal {{showLimitModal ? 'active' : ''}}">
+  <view class="modal-mask" bindtap="hideLimit"></view>
+  <view class="limit-panel">
+    <view class="panel-header">
+      <text>⚠️ BMI 局限性说明</text>
+      <view class="close-icon" bindtap="hideLimit">×</view>
+    </view>
+    
+    <scroll-view scroll-y class="limit-scroll">
+      <view class="limit-list">
+        <view class="limit-item">
+          <view class="li-head">
+            <text class="li-dot">1</text>
+            <text class="li-title">无法区分肌肉与脂肪</text>
+          </view>
+          <view class="li-desc">
+            肌肉密度远高于脂肪，健身爱好者、运动员、体力劳动者等肌肉量偏高人群，体重会随肌肉量增加而上升，BMI 易达到 “超重 / 肥胖” 区间，但实际体脂率极低，并非真正的肥胖，无相关健康风险。
+          </view>
+        </view>
+
+        <view class="limit-item">
+          <view class="li-head">
+            <text class="li-dot">2</text>
+            <text class="li-title">不适用于特殊人群</text>
+          </view>
+          <view class="li-desc">
+            <text>• 对18 岁以下青少年 / 儿童、65 岁以上老年人、孕妇、哺乳期女性完全无参考意义。</text>
+            <text>• 截肢、驼背、骨骼畸形等体型特殊者，因身高 / 体重计算基数失真，BMI 结果也不具备参考价值。</text>
+          </view>
+        </view>
+
+        <view class="limit-item">
+          <view class="li-head">
+            <text class="li-dot">3</text>
+            <text class="li-title">不反映体脂分布状态</text>
+          </view>
+          <view class="li-desc">
+            体脂堆积部位直接影响健康风险（腹部脂肪堆积＞四肢脂肪堆积），同等 BMI 数值的人群，若存在腰腹赘肉多、腰围超标（男性≥85cm，女性≥80cm）的中心性肥胖问题，高血压、糖尿病等慢病风险会显著升高，而 BMI 无法体现体脂分布差异。
+          </view>
+        </view>
+
+        <view class="limit-item">
+          <view class="li-head">
+            <text class="li-dot">4</text>
+            <text class="li-title">忽略骨骼、体型个体差异</text>
+          </view>
+          <view class="li-desc">
+            骨架偏大 / 偏小、身高过矮 / 过高的人群，BMI 计算结果易出现偏差，比如个子矮小、骨架偏大者，即使体脂率正常，BMI 也可能偏高，并非脂肪过多导致。
+          </view>
+        </view>
+
+        <view class="limit-item">
+          <view class="li-head">
+            <text class="li-dot">5</text>
+            <text class="li-title">未考虑身体水分、肌肉流失等因素</text>
+          </view>
+          <view class="li-desc">
+            <text>• 水肿、脱水会短期改变体重，导致 BMI 数值波动。</text>
+            <text>• 老年人随年龄增长出现肌肉流失、脂肪占比上升，可能 BMI 处于 “正常” 区间，但实际体脂率超标，存在健康隐患，BMI 无法识别此类问题。</text>
+          </view>
+        </view>
+      </view>
+
+      <view class="core-warning">
+        <view class="warn-title">🔔 核心提醒</view>
+        <view class="warn-desc">
+          判断身体健康状态，需将：
+          <view class="warn-points">BMI 数值 + 腰围（体脂分布）+ 体脂率（可选）+ 自身身体感受（乏力、腰酸、代谢状态等）</view>
+          结合分析，特殊人群需以专业体检、医生评估为准。
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+</view>
+
+<!-- 小贴士弹窗 -->
+<modal hidden="{{!showTipsModal}}" title="健康小贴士" confirm-text="知道了" no-cancel bindconfirm="hideTips">
+  <view class="tips-content">
+    BMI (身体质量指数) 是衡量人体胖瘦程度以及是否健康的一个常用指标。
+    <view class="tips-sub">
+      计算公式: 体重(kg) / 身高(m)²
+    </view>
+    <view class="tips-note">
+      注: BMI仅为参考，肌肉发达者可能BMI较高但体脂率低，需结合体脂率、腰围等综合判断。
+    </view>
+  </view>
+</modal>

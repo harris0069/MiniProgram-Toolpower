@@ -1,0 +1,128 @@
+<navigation-bar title="电子印章制作" back="{{true}}" color="black" background="#FFFFFF"></navigation-bar>
+
+<!-- 顶级容器：Flex纵向布局 -->
+<view class="page-container">
+  
+  <!-- Level 1: 预览区 (固定高度) -->
+  <view class="preview-layer" bindtouchstart="onTouchStart" bindtouchmove="onTouchMove" bindtouchend="onTouchEnd">
+    <view class="canvas-wrapper" style="transform: translate({{previewX}}px, {{previewY}}px) scale({{previewScale}});">
+      <canvas type="2d" id="sealCanvas" class="seal-canvas"></canvas>
+      <view class="watermark" wx:if="{{config.showWatermark}}">{{config.watermarkText}}</view>
+    </view>
+    
+    <!-- 浮动快捷工具 (Preview层级内) -->
+    <view class="preview-tools">
+      <view class="mini-tool-btn" catchtap="resetPreview">
+        <text class="icon-reset">⟲</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- Level 2: 控制面板 (Flex自适应剩余空间，内部滚动) -->
+  <scroll-view class="control-layer" scroll-y show-scrollbar="{{false}}" enhanced="{{true}}">
+    <view class="control-content">
+      
+      <!-- 高频操作区 -->
+      <view class="form-group">
+        <text class="label">主文字 (公司/组织)</text>
+        <input class="input-field" value="{{config.companyName}}" bindinput="onInput" data-key="companyName" placeholder="输入文字实时预览" adjust-position="{{false}}" bindfocus="onInputFocus" bindblur="onInputBlur"/>
+      </view>
+
+      <view class="form-group">
+        <text class="label">副文字 (类型)</text>
+        <input class="input-field" value="{{config.centerText}}" bindinput="onInput" data-key="centerText" placeholder="如：专用章" adjust-position="{{false}}" bindfocus="onInputFocus" bindblur="onInputBlur"/>
+      </view>
+
+      <view class="form-group">
+        <text class="label">印章形状</text>
+        <scroll-view scroll-x class="shape-scroll" enable-flex>
+          <view class="shape-item {{config.shape === 'circle' ? 'active' : ''}}" bindtap="setConfig" data-key="shape" data-value="circle">圆形</view>
+          <view class="shape-item {{config.shape === 'oval' ? 'active' : ''}}" bindtap="setConfig" data-key="shape" data-value="oval">椭圆</view>
+          <view class="shape-item {{config.shape === 'square' ? 'active' : ''}}" bindtap="setConfig" data-key="shape" data-value="square">方形</view>
+          <view class="shape-item {{config.shape === 'rhombus' ? 'active' : ''}}" bindtap="setConfig" data-key="shape" data-value="rhombus">菱形</view>
+          <view class="shape-item {{config.shape === 'shield' ? 'active' : ''}}" bindtap="setConfig" data-key="shape" data-value="shield">盾形</view>
+        </scroll-view>
+      </view>
+
+      <view class="form-group">
+        <view class="label-row">
+           <text class="label">边框粗细</text>
+           <text class="value-tip">{{config.borderWidth}}px</text>
+        </view>
+        <slider class="control-slider" min="1" max="10" value="{{config.borderWidth}}" activeColor="#D4B98C" block-size="20" bindchanging="onSliderChange" bindchange="onSliderChange" data-key="borderWidth"/>
+      </view>
+      
+       <view class="form-group">
+        <text class="label">印章颜色</text>
+        <scroll-view scroll-x class="color-scroll" enable-flex>
+          <view class="color-item {{config.color === item ? 'active' : ''}}" wx:for="{{presetColors}}" wx:key="*this" style="background: {{item}}" bindtap="setConfig" data-key="color" data-value="{{item}}"></view>
+        </scroll-view>
+      </view>
+
+      <!-- 折叠的进阶设置 -->
+      <view class="advanced-section">
+        <view class="advanced-header" bindtap="toggleAdvanced">
+          <text>更多设置</text>
+          <view class="arrow-icon {{showAdvanced ? 'expanded' : ''}}"></view>
+        </view>
+        
+        <view class="advanced-content" wx:if="{{showAdvanced}}">
+          <view class="form-group">
+             <view class="label-row">
+               <text class="label">防伪编码</text>
+             </view>
+             <input class="input-field" type="number" value="{{config.securityCode}}" bindinput="onInput" data-key="securityCode" placeholder="输入数字编码" adjust-position="{{false}}" bindfocus="onInputFocus" bindblur="onInputBlur"/>
+          </view>
+          
+           <view class="form-group">
+             <view class="label-row">
+               <text class="label">字体选择</text>
+             </view>
+             <view class="radio-group">
+                <view class="radio-chip {{config.fontType === 'song' ? 'active' : ''}}" bindtap="setConfig" data-key="fontType" data-value="song">宋体</view>
+                <view class="radio-chip {{config.fontType === 'hei' ? 'active' : ''}}" bindtap="setConfig" data-key="fontType" data-value="hei">黑体</view>
+                <view class="radio-chip {{config.fontType === 'kai' ? 'active' : ''}}" bindtap="setConfig" data-key="fontType" data-value="kai">楷体</view>
+             </view>
+          </view>
+          
+          <view class="form-group">
+             <view class="switch-row">
+               <text class="label">显示内花纹</text>
+               <switch checked="{{config.showPattern}}" bindchange="togglePattern" color="#D4B98C" style="transform: scale(0.8)"/>
+             </view>
+          </view>
+          
+           <view class="form-group">
+             <view class="switch-row">
+               <text class="label">添加防伪水印</text>
+               <switch checked="{{config.showWatermark}}" bindchange="toggleWatermark" color="#D4B98C" style="transform: scale(0.8)"/>
+             </view>
+          </view>
+          
+          <view class="form-group">
+            <view class="label-row">
+               <text class="label">透明度</text>
+               <text class="value-tip">{{config.opacity}}%</text>
+            </view>
+            <slider class="control-slider" min="10" max="100" value="{{config.opacity}}" activeColor="#D4B98C" block-size="20" bindchanging="onSliderChange" bindchange="onSliderChange" data-key="opacity"/>
+          </view>
+        </view>
+      </view>
+      
+      <!-- 底部垫高，防止内容被操作栏遮挡 -->
+      <view class="spacer"></view>
+    </view>
+  </scroll-view>
+
+  <!-- Level 3: 底部操作栏 (固定底部) -->
+  <view class="action-layer">
+    <view class="btn-undo {{canUndo ? '' : 'disabled'}}" bindtap="undo">
+      <text class="undo-icon">↺</text>
+      <text class="undo-text">撤销</text>
+    </view>
+    <view class="btn-save" bindtap="saveImage" bindlongpress="showSaveOptions">
+      <text>保存印章</text>
+    </view>
+  </view>
+
+</view>

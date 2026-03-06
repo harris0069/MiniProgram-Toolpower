@@ -1,0 +1,9 @@
+node_modules
+miniprogram_npm
+.idea
+.vscode
+project.private.config.json
+package-lock.json
+yarn.lock
+dist
+unpackage
