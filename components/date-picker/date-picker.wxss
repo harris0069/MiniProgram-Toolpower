@@ -1,0 +1,80 @@
+/* 自定义日期选择器 */
+.date-picker-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 9999;
+  display: flex;
+  align-items: flex-end;
+}
+
+.date-picker-container {
+  width: 100%;
+  background: #FFFFFF;
+  border-radius: 32rpx 32rpx 0 0;
+  overflow: hidden;
+}
+
+/* 头部 */
+.picker-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  height: 100rpx;
+  padding: 0 32rpx;
+  border-bottom: 2rpx solid #F0F0F0;
+}
+
+.header-btn {
+  font-size: 32rpx;
+  padding: 12rpx 24rpx;
+  border-radius: 12rpx;
+  transition: all 0.3s ease;
+}
+
+.cancel-btn {
+  color: #666;
+}
+
+.cancel-btn:active {
+  background: #F5F5F5;
+}
+
+.confirm-btn {
+  color: #FF6B9D;
+  font-weight: 600;
+}
+
+.confirm-btn:active {
+  background: #FFF0F5;
+}
+
+.header-title {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333;
+}
+
+/* 选择器主体 */
+.picker-body {
+  height: 500rpx;
+  padding: 20rpx 0;
+}
+
+.picker-view {
+  width: 100%;
+  height: 100%;
+}
+
+.picker-item {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 80rpx;
+  font-size: 34rpx;
+  color: #333;
+  font-weight: 500;
+}

@@ -1,0 +1,398 @@
+.container {
+  min-height: 100vh;
+  background: linear-gradient(180deg, #FFF5F5 0%, #FFFFFF 100%);
+  padding-bottom: 40rpx;
+}
+
+/* 转盘区域 */
+.wheel-section {
+  padding: 40rpx 30rpx;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.wheel-container {
+  position: relative;
+  width: 600rpx;
+  height: 600rpx;
+  margin-bottom: 40rpx;
+}
+
+.wheel-canvas {
+  width: 100%;
+  height: 100%;
+  border-radius: 50%;
+  box-shadow: 0 8rpx 32rpx rgba(255, 107, 107, 0.3);
+}
+
+.spin-button {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  width: 120rpx;
+  height: 120rpx;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #FF6B6B, #FF8E8E);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow: 0 4rpx 16rpx rgba(255, 107, 107, 0.4);
+  transition: all 0.3s ease;
+  z-index: 10;
+}
+
+.spin-button:active {
+  transform: translate(-50%, -50%) scale(0.95);
+}
+
+.spin-button.spinning {
+  background: linear-gradient(135deg, #999, #BBB);
+  pointer-events: none;
+}
+
+.spin-text {
+  color: #FFF;
+  font-size: 24rpx;
+  font-weight: bold;
+  text-align: center;
+  line-height: 1.2;
+}
+
+/* 结果显示 */
+.result-section {
+  width: 100%;
+  display: flex;
+  justify-content: center;
+  animation: fadeInUp 0.5s ease;
+}
+
+@keyframes fadeInUp {
+  from {
+    opacity: 0;
+    transform: translateY(20rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.result-card {
+  background: linear-gradient(135deg, #FF9A9E, #FECFEF);
+  padding: 30rpx 40rpx;
+  border-radius: 20rpx;
+  text-align: center;
+  box-shadow: 0 8rpx 32rpx rgba(255, 154, 158, 0.3);
+}
+
+.result-label {
+  display: block;
+  font-size: 28rpx;
+  color: #FFF;
+  margin-bottom: 12rpx;
+  opacity: 0.9;
+}
+
+.result-text {
+  display: block;
+  font-size: 48rpx;
+  font-weight: bold;
+  color: #FFF;
+}
+
+/* 选项管理 */
+.options-section {
+  margin: 0 30rpx 40rpx;
+}
+
+.section-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 30rpx;
+}
+
+.section-title {
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.header-buttons {
+  display: flex;
+  gap: 16rpx;
+}
+
+.header-btn {
+  padding: 12rpx 24rpx;
+  background: #F8F9FA;
+  border: 1rpx solid #E5E5E5;
+  border-radius: 20rpx;
+  font-size: 24rpx;
+  color: #666;
+}
+
+.header-btn:active {
+  background: #E5E5E5;
+}
+
+.options-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16rpx;
+}
+
+.option-item {
+  display: flex;
+  align-items: center;
+  padding: 24rpx;
+  background: #FFF;
+  border-radius: 16rpx;
+  box-shadow: 0 4rpx 20rpx rgba(0, 0, 0, 0.08);
+}
+
+.option-color {
+  width: 32rpx;
+  height: 32rpx;
+  border-radius: 50%;
+  margin-right: 20rpx;
+  flex-shrink: 0;
+}
+
+.option-text {
+  flex: 1;
+  font-size: 28rpx;
+  color: #333;
+  line-height: 1.4;
+}
+
+.option-actions {
+  display: flex;
+  gap: 16rpx;
+}
+
+.action-btn {
+  width: 60rpx;
+  height: 60rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  transition: all 0.3s ease;
+}
+
+.edit-btn {
+  background: #E3F2FD;
+}
+
+.edit-btn:active {
+  background: #BBDEFB;
+}
+
+.delete-btn {
+  background: #FFEBEE;
+}
+
+.delete-btn:active {
+  background: #FFCDD2;
+}
+
+.add-option-btn {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 32rpx;
+  background: #F8F9FA;
+  border: 2rpx dashed #DDD;
+  border-radius: 16rpx;
+  color: #999;
+  transition: all 0.3s ease;
+}
+
+.add-option-btn:active {
+  background: #F0F0F0;
+  border-color: #CCC;
+}
+
+.add-icon {
+  font-size: 36rpx;
+  margin-right: 12rpx;
+}
+
+.add-text {
+  font-size: 28rpx;
+}
+
+/* 使用说明 */
+.tips-section {
+  margin: 0 30rpx;
+  padding: 30rpx;
+  background: #F8F9FA;
+  border-radius: 20rpx;
+  border-left: 6rpx solid #FF9A9E;
+}
+
+.tips-header {
+  display: flex;
+  align-items: center;
+  margin-bottom: 20rpx;
+}
+
+.tips-icon {
+  font-size: 32rpx;
+  margin-right: 12rpx;
+}
+
+.tips-title {
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.tips-content {
+  display: flex;
+  flex-direction: column;
+  gap: 12rpx;
+}
+
+.tip-item {
+  font-size: 26rpx;
+  color: #666;
+  line-height: 1.5;
+}
+
+/* 弹窗样式 */
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 40rpx;
+}
+
+.modal-content {
+  background: #FFF;
+  border-radius: 24rpx;
+  width: 100%;
+  max-width: 600rpx;
+  overflow: hidden;
+}
+
+.template-modal {
+  max-height: 80vh;
+}
+
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 30rpx;
+  border-bottom: 1rpx solid #E5E5E5;
+}
+
+.modal-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.modal-close {
+  width: 40rpx;
+  height: 40rpx;
+  border-radius: 50%;
+  background: #F5F5F5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 28rpx;
+  color: #999;
+}
+
+.modal-body {
+  padding: 30rpx;
+}
+
+.edit-input {
+  width: 100%;
+  padding: 20rpx;
+  border: 1rpx solid #E5E5E5;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  background: #F8F9FA;
+}
+
+.modal-footer {
+  display: flex;
+  gap: 20rpx;
+  padding: 30rpx;
+  border-top: 1rpx solid #E5E5E5;
+}
+
+.modal-btn {
+  flex: 1;
+  padding: 24rpx;
+  border-radius: 12rpx;
+  font-size: 28rpx;
+  border: none;
+}
+
+.cancel-btn {
+  background: #F5F5F5;
+  color: #666;
+}
+
+.confirm-btn {
+  background: #FF9A9E;
+  color: #FFF;
+}
+
+/* 模板列表 */
+.template-list {
+  max-height: 60vh;
+  overflow-y: auto;
+}
+
+.template-item {
+  padding: 24rpx;
+  border-bottom: 1rpx solid #F0F0F0;
+  transition: background 0.3s ease;
+}
+
+.template-item:active {
+  background: #F8F9FA;
+}
+
+.template-item:last-child {
+  border-bottom: none;
+}
+
+.template-name {
+  display: block;
+  font-size: 30rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 12rpx;
+}
+
+.template-options {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8rpx;
+}
+
+.template-option {
+  padding: 6rpx 12rpx;
+  background: #F0F0F0;
+  border-radius: 12rpx;
+  font-size: 22rpx;
+  color: #666;
+}

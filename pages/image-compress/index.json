@@ -2,5 +2,5 @@
   "usingComponents": {
     "navigation-bar": "/components/navigation-bar/navigation-bar"
   },
-  "navigationBarTitleText": "图片压缩工具"
+  "navigationStyle": "custom"
 }

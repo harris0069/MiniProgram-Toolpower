@@ -157,9 +157,10 @@ var calendar = {
   // ================= 核心转换函数 =================
 
   solarToLunar: function(year, month, date) {
+    if (year < 1900 || year > this.getSupportedEndYear()) { return null; }
     var i, leap = 0, temp = 0;
     var offset = (Date.UTC(year, month - 1, date) - Date.UTC(1900, 0, 31)) / 86400000;
-    for (i = 1900; i < 2101 && offset > 0; i++) {
+    for (i = 1900; i < this.getSupportedEndYear() + 1 && offset > 0; i++) {
       temp = this.yearDays(i);
       offset -= temp;
     }
@@ -236,18 +237,16 @@ var calendar = {
       const event = eventInfo.highestPriorityEvent;
       lunarObj.gridDisplay = event.name;
       lunarObj.gridDisplayType = event.type;
-
-      if (event.type === 'term') {
-        lunarObj.termInfo = solarTermsData[event.name] || null;
-      }
-
       lunarObj.isMajorHoliday = (event.type === 'lunar' && ['春节', '元宵节', '端午节', '七夕节', '中秋节', '重阳节', '除夕'].includes(event.name)) ||
                                 (event.type === 'solar' && ['元旦', '国庆节'].includes(event.name));
     } else {
       lunarObj.gridDisplay = lunarObj.IDayCn;
-      lunarObj.gridDisplayType = 'lunar'; // 确保默认类型
+      lunarObj.gridDisplayType = 'lunar';
       lunarObj.isMajorHoliday = false;
     }
+
+    var termEvent = eventInfo.allEvents.find(function(e) { return e.type === 'term'; });
+    lunarObj.termInfo = termEvent ? (solarTermsData[termEvent.name] || null) : null;
 
     return lunarObj;
   },
@@ -255,9 +254,9 @@ var calendar = {
   lunarToSolar: function(year, month, date, isLeapMonth) {
     isLeapMonth = isLeapMonth || false;
     var leap = this.leapMonth(year);
-    var daysInMonth = this.monthDays(year, month);
+    var daysInMonth = isLeapMonth ? this.leapDays(year) : this.monthDays(year, month);
 
-    if (year < 1900 || year > 2100) { return null; }
+    if (year < 1900 || year > this.getSupportedEndYear()) { return null; }
     if (isLeapMonth && leap === 0) { return null; }
     if (isLeapMonth && month !== leap) { return null; }
     if (date < 1 || date > daysInMonth) { return null; }
@@ -296,22 +295,25 @@ var calendar = {
     
     // 1. 计算节气
     var termName = this.getTermName(lunarObj.cYear, lunarObj.cMonth, lunarObj.cDay);
-    if (termName && this.solarTerms[termName]) {
+    if (termName) {
+      var termDetail = this.solarTerms[termName] || {};
+      var termInfo = solarTermsData[termName] || {};
       allEvents.push({
         name: termName,
         priority: 2,
         type: 'term',
-        ...this.solarTerms[termName]
+        description: termDetail.description || termInfo.desc || null,
+        phenology: termDetail.phenology || []
       });
     }
 
     // 2. 计算农历节日
     var lunarFestivalKey = `${lunarObj.lMonth}-${lunarObj.lDay}`;
-    if (this.lunarFestivals[lunarFestivalKey]) {
+    if (!lunarObj.isLeap && this.lunarFestivals[lunarFestivalKey]) {
       allEvents.push({ ...this.lunarFestivals[lunarFestivalKey], type: 'lunar' });
     }
     // 特殊处理：除夕
-    if (this.monthDays(lunarObj.lYear, 12) === lunarObj.lDay && lunarObj.lMonth === 12) {
+    if (!lunarObj.isLeap && this.monthDays(lunarObj.lYear, 12) === lunarObj.lDay && lunarObj.lMonth === 12) {
         allEvents.push({ name: '除夕', priority: 1, major: true, type: 'lunar', description: '农历年的最后一天，家家户户准备迎接新年。' });
     }
 
@@ -359,7 +361,7 @@ var calendar = {
    * @return {Date} 节气的日期对象
    */
   getTermDate: function(year, n) {
-    var century = year < 2000 ? 0 : 1;
+    var century = year <= 2000 ? 0 : 1;
     var C = this.sTermInfo[century][n];
     var Y = (year % 100);
     var L = Y === 0 ? 0 : Math.floor(Y / 4);
@@ -404,6 +406,7 @@ var calendar = {
     return this.jianchu[jianchuName];
   },
 
+  getSupportedEndYear: function() { return 1900 + this.lunarInfo.length - 1; },
   leapMonth: function(year) { return (this.lunarInfo[year - 1900] & 0xf); },
   yearDays: function(year) {
     var i, sum = 348;
@@ -433,6 +436,23 @@ var calendar = {
     return '';
   },
   formatMonth: function(month) { return this.nStr2[month - 1] + '月'; },
+};
+
+calendar.solarTermMinutes = [
+  0, 21208, 42467, 63836, 85337, 107014,
+  128867, 150921, 173149, 195551, 218072, 240693,
+  263343, 285989, 308563, 331033, 353350, 375494,
+  397447, 419210, 440795, 462224, 483532, 504758
+];
+
+calendar.getTermDate = function(year, n) {
+  var baseUtc = Date.UTC(1900, 0, 6, 2, 5);
+  var offset = 31556925974.7 * (year - 1900) + this.solarTermMinutes[n] * 60000;
+  var utcDate = new Date(baseUtc + offset);
+  var termMonth = Math.floor(n / 2);
+  var termDay = utcDate.getUTCDate();
+
+  return new Date(year, termMonth, termDay);
 };
 
 module.exports = {

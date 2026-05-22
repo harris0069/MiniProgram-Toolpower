@@ -1,128 +1,234 @@
-<navigation-bar title="电子印章制作" back="{{true}}" color="black" background="#FFFFFF"></navigation-bar>
+<navigation-bar title="电子印章" back="{{true}}" color="black" background="#FFF"></navigation-bar>
 
-<!-- 顶级容器：Flex纵向布局 -->
-<view class="page-container">
-  
-  <!-- Level 1: 预览区 (固定高度) -->
-  <view class="preview-layer" bindtouchstart="onTouchStart" bindtouchmove="onTouchMove" bindtouchend="onTouchEnd">
-    <view class="canvas-wrapper" style="transform: translate({{previewX}}px, {{previewY}}px) scale({{previewScale}});">
-      <canvas type="2d" id="sealCanvas" class="seal-canvas"></canvas>
-      <view class="watermark" wx:if="{{config.showWatermark}}">{{config.watermarkText}}</view>
-    </view>
-    
-    <!-- 浮动快捷工具 (Preview层级内) -->
-    <view class="preview-tools">
-      <view class="mini-tool-btn" catchtap="resetPreview">
-        <text class="icon-reset">⟲</text>
-      </view>
+<view class="container">
+  <!-- 顶部标题 -->
+  <view class="header">
+    <view class="help-btn" bindtap="showHelp">
+      <text>?</text>
     </view>
   </view>
 
-  <!-- Level 2: 控制面板 (Flex自适应剩余空间，内部滚动) -->
-  <scroll-view class="control-layer" scroll-y show-scrollbar="{{false}}" enhanced="{{true}}">
-    <view class="control-content">
-      
-      <!-- 高频操作区 -->
-      <view class="form-group">
-        <text class="label">主文字 (公司/组织)</text>
-        <input class="input-field" value="{{config.companyName}}" bindinput="onInput" data-key="companyName" placeholder="输入文字实时预览" adjust-position="{{false}}" bindfocus="onInputFocus" bindblur="onInputBlur"/>
-      </view>
-
-      <view class="form-group">
-        <text class="label">副文字 (类型)</text>
-        <input class="input-field" value="{{config.centerText}}" bindinput="onInput" data-key="centerText" placeholder="如：专用章" adjust-position="{{false}}" bindfocus="onInputFocus" bindblur="onInputBlur"/>
-      </view>
-
-      <view class="form-group">
-        <text class="label">印章形状</text>
-        <scroll-view scroll-x class="shape-scroll" enable-flex>
-          <view class="shape-item {{config.shape === 'circle' ? 'active' : ''}}" bindtap="setConfig" data-key="shape" data-value="circle">圆形</view>
-          <view class="shape-item {{config.shape === 'oval' ? 'active' : ''}}" bindtap="setConfig" data-key="shape" data-value="oval">椭圆</view>
-          <view class="shape-item {{config.shape === 'square' ? 'active' : ''}}" bindtap="setConfig" data-key="shape" data-value="square">方形</view>
-          <view class="shape-item {{config.shape === 'rhombus' ? 'active' : ''}}" bindtap="setConfig" data-key="shape" data-value="rhombus">菱形</view>
-          <view class="shape-item {{config.shape === 'shield' ? 'active' : ''}}" bindtap="setConfig" data-key="shape" data-value="shield">盾形</view>
-        </scroll-view>
-      </view>
-
-      <view class="form-group">
-        <view class="label-row">
-           <text class="label">边框粗细</text>
-           <text class="value-tip">{{config.borderWidth}}px</text>
+  <!-- 形状选择 -->
+  <view class="shape-selector">
+    <scroll-view scroll-x class="shape-scroll">
+      <view class="shape-list">
+        <view 
+          class="shape-item {{currentShape === 'circle' ? 'active' : ''}}" 
+          bindtap="selectShape" 
+          data-shape="circle">
+          <view class="shape-icon circle-icon"></view>
+          <text>圆形</text>
         </view>
-        <slider class="control-slider" min="1" max="10" value="{{config.borderWidth}}" activeColor="#D4B98C" block-size="20" bindchanging="onSliderChange" bindchange="onSliderChange" data-key="borderWidth"/>
-      </view>
-      
-       <view class="form-group">
-        <text class="label">印章颜色</text>
-        <scroll-view scroll-x class="color-scroll" enable-flex>
-          <view class="color-item {{config.color === item ? 'active' : ''}}" wx:for="{{presetColors}}" wx:key="*this" style="background: {{item}}" bindtap="setConfig" data-key="color" data-value="{{item}}"></view>
-        </scroll-view>
-      </view>
-
-      <!-- 折叠的进阶设置 -->
-      <view class="advanced-section">
-        <view class="advanced-header" bindtap="toggleAdvanced">
-          <text>更多设置</text>
-          <view class="arrow-icon {{showAdvanced ? 'expanded' : ''}}"></view>
+        <view 
+          class="shape-item {{currentShape === 'oval' ? 'active' : ''}}" 
+          bindtap="selectShape" 
+          data-shape="oval">
+          <view class="shape-icon oval-icon"></view>
+          <text>椭圆</text>
         </view>
-        
-        <view class="advanced-content" wx:if="{{showAdvanced}}">
-          <view class="form-group">
-             <view class="label-row">
-               <text class="label">防伪编码</text>
-             </view>
-             <input class="input-field" type="number" value="{{config.securityCode}}" bindinput="onInput" data-key="securityCode" placeholder="输入数字编码" adjust-position="{{false}}" bindfocus="onInputFocus" bindblur="onInputBlur"/>
-          </view>
-          
-           <view class="form-group">
-             <view class="label-row">
-               <text class="label">字体选择</text>
-             </view>
-             <view class="radio-group">
-                <view class="radio-chip {{config.fontType === 'song' ? 'active' : ''}}" bindtap="setConfig" data-key="fontType" data-value="song">宋体</view>
-                <view class="radio-chip {{config.fontType === 'hei' ? 'active' : ''}}" bindtap="setConfig" data-key="fontType" data-value="hei">黑体</view>
-                <view class="radio-chip {{config.fontType === 'kai' ? 'active' : ''}}" bindtap="setConfig" data-key="fontType" data-value="kai">楷体</view>
-             </view>
-          </view>
-          
-          <view class="form-group">
-             <view class="switch-row">
-               <text class="label">显示内花纹</text>
-               <switch checked="{{config.showPattern}}" bindchange="togglePattern" color="#D4B98C" style="transform: scale(0.8)"/>
-             </view>
-          </view>
-          
-           <view class="form-group">
-             <view class="switch-row">
-               <text class="label">添加防伪水印</text>
-               <switch checked="{{config.showWatermark}}" bindchange="toggleWatermark" color="#D4B98C" style="transform: scale(0.8)"/>
-             </view>
-          </view>
-          
-          <view class="form-group">
-            <view class="label-row">
-               <text class="label">透明度</text>
-               <text class="value-tip">{{config.opacity}}%</text>
-            </view>
-            <slider class="control-slider" min="10" max="100" value="{{config.opacity}}" activeColor="#D4B98C" block-size="20" bindchanging="onSliderChange" bindchange="onSliderChange" data-key="opacity"/>
-          </view>
+        <view 
+          class="shape-item {{currentShape === 'square' ? 'active' : ''}}" 
+          bindtap="selectShape" 
+          data-shape="square">
+          <view class="shape-icon square-icon"></view>
+          <text>方形</text>
+        </view>
+        <view 
+          class="shape-item {{currentShape === 'rect' ? 'active' : ''}}" 
+          bindtap="selectShape" 
+          data-shape="rect">
+          <view class="shape-icon rect-icon"></view>
+          <text>矩形</text>
+        </view>
+        <view 
+          class="shape-item {{currentShape === 'oval-h' ? 'active' : ''}}" 
+          bindtap="selectShape" 
+          data-shape="oval-h">
+          <view class="shape-icon oval-h-icon"></view>
+          <text>椭圆横向</text>
         </view>
       </view>
-      
-      <!-- 底部垫高，防止内容被操作栏遮挡 -->
-      <view class="spacer"></view>
-    </view>
-  </scroll-view>
+    </scroll-view>
+  </view>
 
-  <!-- Level 3: 底部操作栏 (固定底部) -->
-  <view class="action-layer">
-    <view class="btn-undo {{canUndo ? '' : 'disabled'}}" bindtap="undo">
-      <text class="undo-icon">↺</text>
-      <text class="undo-text">撤销</text>
-    </view>
-    <view class="btn-save" bindtap="saveImage" bindlongpress="showSaveOptions">
-      <text>保存印章</text>
+  <!-- 印章预览 -->
+  <view class="preview-area">
+    <view class="preview-box">
+      <canvas 
+        type="2d" 
+        id="sealCanvas" 
+        class="seal-canvas"
+      ></canvas>
     </view>
   </view>
 
+  <!-- 参数调节 -->
+  <view class="params-area">
+    <!-- 文字输入 -->
+    <view class="param-section">
+      <view class="section-title">文字内容</view>
+      
+      <!-- 圆形章：外圈+中心 -->
+      <block wx:if="{{currentShape === 'circle'}}">
+        <view class="input-group">
+          <text class="label">外圈文字</text>
+          <input 
+            class="text-input" 
+            value="{{outerText}}" 
+            maxlength="15"
+            placeholder="如：XX科技有限公司"
+            bindinput="onOuterTextInput"
+          />
+          <text class="char-count">{{outerText.length}}/15</text>
+        </view>
+        <view class="input-group">
+          <text class="label">中心文字</text>
+          <input 
+            class="text-input" 
+            value="{{centerText}}" 
+            maxlength="8"
+            placeholder="如：合同专用章"
+            bindinput="onCenterTextInput"
+          />
+          <text class="char-count">{{centerText.length}}/8</text>
+        </view>
+      </block>
+
+      <!-- 其他形状：多行文字 -->
+      <block wx:else>
+        <view class="input-group">
+          <text class="label">第一行</text>
+          <input 
+            class="text-input" 
+            value="{{line1Text}}" 
+            maxlength="12"
+            placeholder="公司名称"
+            bindinput="onLine1Input"
+          />
+          <text class="char-count">{{line1Text.length}}/12</text>
+        </view>
+        <view class="input-group">
+          <text class="label">第二行</text>
+          <input 
+            class="text-input" 
+            value="{{line2Text}}" 
+            maxlength="12"
+            placeholder="部门名称"
+            bindinput="onLine2Input"
+          />
+          <text class="char-count">{{line2Text.length}}/12</text>
+        </view>
+        <view class="input-group">
+          <text class="label">第三行</text>
+          <input 
+            class="text-input" 
+            value="{{line3Text}}" 
+            maxlength="12"
+            placeholder="用途说明"
+            bindinput="onLine3Input"
+          />
+          <text class="char-count">{{line3Text.length}}/12</text>
+        </view>
+      </block>
+    </view>
+
+    <!-- 颜色选择 -->
+    <view class="param-section">
+      <view class="section-title">印章颜色</view>
+      <view class="color-list">
+        <view 
+          class="color-item {{sealColor === '#DE2910' ? 'active' : ''}}" 
+          bindtap="selectColor" 
+          data-color="#DE2910">
+          <view class="color-block" style="background: #DE2910;"></view>
+          <text>红色</text>
+        </view>
+        <view 
+          class="color-item {{sealColor === '#2C6E9E' ? 'active' : ''}}" 
+          bindtap="selectColor" 
+          data-color="#2C6E9E">
+          <view class="color-block" style="background: #2C6E9E;"></view>
+          <text>蓝色</text>
+        </view>
+        <view 
+          class="color-item {{sealColor === '#333333' ? 'active' : ''}}" 
+          bindtap="selectColor" 
+          data-color="#333333">
+          <view class="color-block" style="background: #333333;"></view>
+          <text>黑色</text>
+        </view>
+        <view 
+          class="color-item {{sealColor === '#C9A96E' ? 'active' : ''}}" 
+          bindtap="selectColor" 
+          data-color="#C9A96E">
+          <view class="color-block" style="background: #C9A96E;"></view>
+          <text>金色</text>
+        </view>
+      </view>
+    </view>
+
+    <!-- 文字大小 -->
+    <view class="param-section">
+      <view class="section-title">文字大小: {{fontSize}}%</view>
+      <slider 
+        class="size-slider" 
+        value="{{fontSize}}" 
+        min="80" 
+        max="120" 
+        step="5"
+        bindchange="onFontSizeChange"
+        bindchanging="onFontSizeChanging"
+        activeColor="#07c160"
+        backgroundColor="#e9e9e9"
+        show-value
+      />
+    </view>
+
+    <!-- 边框粗细 -->
+    <view class="param-section">
+      <view class="section-title">边框粗细: {{borderWidth}}px</view>
+      <slider 
+        class="size-slider" 
+        value="{{borderWidth}}" 
+        min="1" 
+        max="5" 
+        step="1"
+        bindchange="onBorderWidthChange"
+        bindchanging="onBorderWidthChanging"
+        activeColor="#07c160"
+        backgroundColor="#e9e9e9"
+        show-value
+      />
+    </view>
+  </view>
+
+  <!-- 底部操作 -->
+  <view class="action-area">
+    <button class="btn btn-secondary" bindtap="resetSeal">
+      <text>↻ 重置</text>
+    </button>
+    <button class="btn btn-primary" bindtap="downloadSeal">
+      <text>💾 下载 PNG</text>
+    </button>
+  </view>
+
+  <!-- 免责声明 -->
+  <view class="disclaimer">
+    <text>* 本工具仅供设计示意，请勿用于伪造法律文件</text>
+  </view>
+
+  <!-- 帮助弹窗 -->
+  <view class="help-modal" wx:if="{{showHelpModal}}" bindtap="hideHelp">
+    <view class="help-content" catchtap="stopPropagation">
+      <view class="help-title">使用说明</view>
+      <view class="help-text">
+        <text>1. 选择印章形状\n</text>
+        <text>2. 输入文字内容\n</text>
+        <text>3. 调整颜色和大小\n</text>
+        <text>4. 点击下载保存到相册\n\n</text>
+        <text class="warning">⚠️ 本工具生成的印章仅用于设计、示意或非官方用途，不得用于伪造公章或法律欺诈，违者自负。</text>
+      </view>
+      <button class="help-close" bindtap="hideHelp">知道了</button>
+    </view>
+  </view>
 </view>

@@ -1,0 +1,54 @@
+<!-- 自定义日期选择器 -->
+<view class="date-picker-overlay" wx:if="{{show}}" bindtap="onCancel">
+  <view class="date-picker-container" catchtap="stopPropagation">
+    <!-- 头部 -->
+    <view class="picker-header">
+      <view class="header-btn cancel-btn" bindtap="onCancel">取消</view>
+      <view class="header-title">选择日期</view>
+      <view class="header-btn confirm-btn" bindtap="onConfirm">确定</view>
+    </view>
+
+    <!-- 选择器 -->
+    <view class="picker-body">
+      <picker-view 
+        class="picker-view" 
+        indicator-style="height: 80rpx;"
+        value="{{[yearIndex, monthIndex, dayIndex]}}"
+        bindchange="onPickerChange"
+      >
+        <!-- 年 -->
+        <picker-view-column>
+          <view 
+            class="picker-item" 
+            wx:for="{{years}}" 
+            wx:key="index"
+          >
+            {{item}}年
+          </view>
+        </picker-view-column>
+
+        <!-- 月 -->
+        <picker-view-column>
+          <view 
+            class="picker-item" 
+            wx:for="{{months}}" 
+            wx:key="index"
+          >
+            {{item}}月
+          </view>
+        </picker-view-column>
+
+        <!-- 日 -->
+        <picker-view-column>
+          <view 
+            class="picker-item" 
+            wx:for="{{days}}" 
+            wx:key="index"
+          >
+            {{item}}日
+          </view>
+        </picker-view-column>
+      </picker-view>
+    </view>
+  </view>
+</view>

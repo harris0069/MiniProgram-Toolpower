@@ -1,617 +1,527 @@
-const app = getApp();
-
 Page({
   data: {
-    // UI状态
-    showAdvanced: false,
+    // 当前形状
+    currentShape: 'circle',
     
-    // 预览交互
-    previewScale: 1,
-    previewX: 0,
-    previewY: 0,
-    isInteracting: false,
+    // 文字内容
+    outerText: 'XX科技有限公司',
+    centerText: '合同专用章',
+    line1Text: '公司名称',
+    line2Text: '部门名称',
+    line3Text: '专用章',
     
-    // 印章配置
-    config: {
-      companyName: '测试科技有限责任公司',
-      centerText: '专用章',
-      centerTextTop: false,
-      securityCode: '1101050000000',
-      fontType: 'song',
-      shape: 'circle',
-      borderWidth: 5,
-      showPattern: true,
-      color: '#D4380D',
-      opacity: 100,
-      showWatermark: false,
-      watermarkText: '电子印章 仅供参考'
-    },
+    // 样式参数
+    sealColor: '#DE2910',
+    fontSize: 100,
+    borderWidth: 2,
     
-    // 历史栈 (撤销用)
-    historyStack: [],
-    
-    // 预设
-    presetColors: ['#D4380D', '#0055AA', '#000000', '#1A5F4A', '#FF0000', '#333333'],
-    canUndo: false
+    // UI 状态
+    showHelpModal: false
   },
+
+  // Canvas 实例
+  canvas: null,
+  ctx: null,
+  canvasSize: 600, // 输出尺寸
 
   onLoad() {
+    // 首次进入显示帮助
+    this.setData({ showHelpModal: true });
+  },
+
+  onReady() {
     this.initCanvas();
-    this.pushHistory(); // 初始状态
   },
 
-  // --- 1. UI 交互 ---
-  
-  toggleAdvanced() {
-    this.setData({ showAdvanced: !this.data.showAdvanced });
-  },
-  
-  onInputFocus() {}, 
-  onInputBlur() {},
-
-  // --- 2. 核心逻辑：实时渲染 & 撤销 ---
-
-  updateConfig(key, value) {
-    if (this.data.config[key] !== value) {
-       this.pushHistory();
-    }
-    this.setData({
-      [`config.${key}`]: value
-    }, () => {
-      this.drawSeal();
-    });
-  },
-
-  setConfig(e) {
-    const { key, value } = e.currentTarget.dataset;
-    this.updateConfig(key, value);
-    wx.vibrateShort({ type: 'light' });
-  },
-
-  onInput(e) {
-    const key = e.currentTarget.dataset.key;
-    const value = e.detail.value;
-    this.setData({ [`config.${key}`]: value });
-    this.drawSeal();
-  },
-
-  onSliderChange(e) {
-      const key = e.currentTarget.dataset.key;
-      const value = e.detail.value;
-      
-      if (e.type === 'changing') {
-          this.setData({ [`config.${key}`]: value });
-          this.drawSeal();
-      } 
-      else if (e.type === 'change') {
-          this.updateConfig(key, value);
-      }
-  },
-  
-  togglePattern(e) {
-      this.updateConfig('showPattern', e.detail.value);
-  },
-  
-  toggleWatermark(e) {
-      this.updateConfig('showWatermark', e.detail.value);
-  },
-
-  // 历史栈管理
-  pushHistory() {
-      const current = JSON.parse(JSON.stringify(this.data.config));
-      const stack = this.data.historyStack;
-      stack.push(current);
-      if (stack.length > 20) stack.shift(); 
-      this.setData({ historyStack: stack, canUndo: stack.length > 1 });
-  },
-  
-  undo() {
-      if (this.data.historyStack.length <= 1) return;
-      const stack = this.data.historyStack;
-      stack.pop(); 
-      const prev = stack[stack.length - 1]; 
-      
-      this.setData({
-          config: prev,
-          historyStack: stack,
-          canUndo: stack.length > 1
-      }, () => {
-          this.drawSeal();
-          wx.vibrateShort({ type: 'medium' });
-      });
-  },
-
-  // --- 3. 预览区手势交互 ---
-  onTouchStart(e) {
-    if (e.touches.length === 2) {
-      const x1 = e.touches[0].pageX;
-      const y1 = e.touches[0].pageY;
-      const x2 = e.touches[1].pageX;
-      const y2 = e.touches[1].pageY;
-      this.startDistance = Math.sqrt((x2-x1)**2 + (y2-y1)**2);
-      this.startScale = this.data.previewScale;
-      this.setData({ isInteracting: true });
-    } else if (e.touches.length === 1) {
-      this.startX = e.touches[0].pageX;
-      this.startY = e.touches[0].pageY;
-      this.startPreviewX = this.data.previewX;
-      this.startPreviewY = this.data.previewY;
-      this.setData({ isInteracting: true });
-    }
-  },
-
-  onTouchMove(e) {
-    if (e.touches.length === 2) {
-      const x1 = e.touches[0].pageX;
-      const y1 = e.touches[0].pageY;
-      const x2 = e.touches[1].pageX;
-      const y2 = e.touches[1].pageY;
-      const newDistance = Math.sqrt((x2-x1)**2 + (y2-y1)**2);
-      const scale = this.startScale * (newDistance / this.startDistance);
-      if (scale >= 0.2 && scale <= 1.5) {
-          this.setData({ previewScale: scale });
-      }
-    } else if (e.touches.length === 1) {
-        const dx = e.touches[0].pageX - this.startX;
-        const dy = e.touches[0].pageY - this.startY;
-        this.setData({
-            previewX: this.startPreviewX + dx,
-            previewY: this.startPreviewY + dy
-        });
-    }
-  },
-
-  onTouchEnd() {
-    this.setData({ isInteracting: false });
-  },
-  
-  resetPreview() {
-      this.setData({
-          previewScale: 1,
-          previewX: 0,
-          previewY: 0
-      });
-      wx.vibrateShort({ type: 'light' });
-  },
-
-  // --- 4. Canvas 绘制 ---
+  // 初始化 Canvas
   initCanvas() {
     const query = wx.createSelectorQuery();
     query.select('#sealCanvas')
       .fields({ node: true, size: true })
       .exec((res) => {
-        if (!res[0]) return;
-        const canvas = res[0].node;
-        const ctx = canvas.getContext('2d');
-        const dpr = wx.getSystemInfoSync().pixelRatio;
-        
-        canvas.width = res[0].width * dpr;
-        canvas.height = res[0].height * dpr;
-        ctx.scale(dpr, dpr);
-
-        this.canvas = canvas;
-        this.ctx = ctx;
-        this.dpr = dpr;
-        this.drawSeal();
+        if (res && res[0] && res[0].node) {
+          const canvas = res[0].node;
+          const ctx = canvas.getContext('2d');
+          
+          const dpr = wx.getWindowInfo().pixelRatio || 2;
+          canvas.width = this.canvasSize * dpr;
+          canvas.height = this.canvasSize * dpr;
+          ctx.scale(dpr, dpr);
+          
+          this.canvas = canvas;
+          this.ctx = ctx;
+          
+          // 绘制初始印章
+          this.drawSeal();
+        }
       });
   },
 
+  // 绘制印章
   drawSeal() {
     if (!this.ctx) return;
+
     const ctx = this.ctx;
-    const { width, height } = this.canvas;
-    const dpr = this.dpr;
-    const w = width / dpr;
-    const h = height / dpr;
-    const cx = w / 2;
-    const cy = h / 2;
-    const config = this.data.config;
+    const size = this.canvasSize;
+    const centerX = size / 2;
+    const centerY = size / 2;
 
-    ctx.clearRect(0, 0, w, h);
-    ctx.save();
-    
-    ctx.strokeStyle = config.color;
-    ctx.fillStyle = config.color;
-    ctx.lineWidth = config.borderWidth;
-    ctx.globalAlpha = config.opacity / 100;
-    
-    // 文本排版预处理
-    this.ctx.textAlign = 'center';
-    this.ctx.textBaseline = 'middle';
-    
-    if (config.shape === 'circle') this.drawCircle(ctx, cx, cy, config);
-    else if (config.shape === 'oval') this.drawOval(ctx, cx, cy, config);
-    else if (config.shape === 'square') this.drawSquare(ctx, cx, cy, config);
-    else if (config.shape === 'rhombus') this.drawRhombus(ctx, cx, cy, config);
-    else if (config.shape === 'shield') this.drawShield(ctx, cx, cy, config);
+    // 清空画布
+    ctx.clearRect(0, 0, size, size);
 
-    ctx.restore();
+    // 设置样式
+    ctx.strokeStyle = this.data.sealColor;
+    ctx.fillStyle = this.data.sealColor;
+    ctx.lineWidth = this.data.borderWidth;
+
+    // 根据形状绘制
+    switch (this.data.currentShape) {
+      case 'circle':
+        this.drawCircleSeal(ctx, centerX, centerY);
+        break;
+      case 'oval':
+        this.drawOvalSeal(ctx, centerX, centerY, false);
+        break;
+      case 'oval-h':
+        this.drawOvalSeal(ctx, centerX, centerY, true);
+        break;
+      case 'square':
+        this.drawSquareSeal(ctx, centerX, centerY);
+        break;
+      case 'rect':
+        this.drawRectSeal(ctx, centerX, centerY);
+        break;
+    }
   },
 
-  // --- 形状绘制 ---
-  
-  // 1. 圆形 (保持原逻辑，优化字间距)
-  drawCircle(ctx, cx, cy, config) {
-    const radius = 100;
+  // 绘制圆形印章
+  drawCircleSeal(ctx, cx, cy) {
+    const radius = 220;
+    const innerRadius = 180;
+    
+    // 绘制外圈
     ctx.beginPath();
-    ctx.arc(cx, cy, radius, 0, 2 * Math.PI);
+    ctx.arc(cx, cy, radius, 0, Math.PI * 2);
     ctx.stroke();
     
-    if (config.showPattern) {
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.arc(cx, cy, radius - 6, 0, 2 * Math.PI);
-        ctx.stroke();
-        ctx.lineWidth = config.borderWidth;
-    }
-
-    this.drawStar(ctx, cx, cy, 28);
-    this.drawCurvedText(ctx, config.companyName, cx, cy, radius - 20, true);
-    this.drawCurvedText(ctx, config.securityCode, cx, cy, radius - 20, false);
-    
-    ctx.font = `bold 18px ${this.getFontFamily(config.fontType)}`;
-    const textY = config.centerTextTop ? cy - 50 : cy + 50;
-    ctx.fillText(config.centerText, cx, textY);
-  },
-
-  // 2. 椭圆 (优化：文字沿椭圆路径排列，非简单压缩)
-  drawOval(ctx, cx, cy, config) {
-    const rx = 110;
-    const ry = 75;
-    
-    // 绘制椭圆边框
+    // 绘制内圈
     ctx.beginPath();
-    ctx.ellipse(cx, cy, rx, ry, 0, 0, 2 * Math.PI);
+    ctx.arc(cx, cy, innerRadius, 0, Math.PI * 2);
     ctx.stroke();
-    
-    if (config.showPattern) {
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.ellipse(cx, cy, rx - 4, ry - 4, 0, 0, 2 * Math.PI);
-        ctx.stroke();
-        ctx.lineWidth = config.borderWidth;
+
+    // 绘制外圈文字（弧形排列）
+    if (this.data.outerText) {
+      this.drawArcText(ctx, this.data.outerText, cx, cy, radius - 25, Math.PI * 0.65);
     }
 
-    // 绘制椭圆弧形文字 (上半部分)
-    // 算法：将椭圆弧长分段，计算每段的角度和切线方向
-    // 简化实现：使用非均匀分布的角度插值来模拟椭圆路径
-    this.drawEllipticalText(ctx, config.companyName, cx, cy, rx - 14, ry - 14, true);
-
-
-    
-    
-
-    // 副文字居中 (几何中心)
-    ctx.font = `bold 18px ${this.getFontFamily(config.fontType)}`;
-    ctx.fillText(config.centerText, cx, cy);
-
-    // 底部编码
-    ctx.font = '12px Helvetica';
-    ctx.fillText(config.securityCode, cx, cy + ry - 12);
-  },
-  
-  // 椭圆文字绘制辅助函数
-  drawEllipticalText(ctx, text, cx, cy, rx, ry, isTop) {
-      if (!text) return;
-      ctx.save();
+    // 绘制中心文字
+    if (this.data.centerText) {
+      const fontSize = 36 * (this.data.fontSize / 100);
+      ctx.font = `bold ${fontSize}px "SimSun", serif`;
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
       
-      // 字体设置
-      const fontSize = 18;
-      ctx.font = `bold ${fontSize}px ${this.getFontFamily(this.data.config.fontType)}`;
-      
-      // 文本压缩：模拟透视
-      ctx.scale(1, 0.85); // 纵向压缩 85%
-      const scaledCy = cy / 0.85; // 修正中心点Y坐标
-      
-      // 角度范围：顶部覆盖约 160 度 (-80 到 80 度，相对于 -90 度顶部)
-      // 计算每个字符的“椭圆角”
-      const totalAngle = Math.PI * 0.9; 
-      const startAngle = -Math.PI / 2 - totalAngle / 2;
-      const angleStep = totalAngle / (text.length + 1);
-      
-      for (let i = 0; i < text.length; i++) {
-          const char = text[i];
-          const theta = startAngle + (i + 1) * angleStep;
-          
-          // 椭圆参数方程
-          // x = rx * cos(theta)
-          // y = ry * sin(theta)
-          const x = cx + rx * Math.cos(theta);
-          const y = scaledCy + ry * Math.sin(theta);
-          
-          ctx.save();
-          ctx.translate(x, y);
-          // 旋转角度：切线方向 + 90度
-          // tan(alpha) = (ry/rx) * tan(theta)  (椭圆法线斜率倒数相关，这里简化用圆近似修正)
-          // 修正：对于文字排列，直接指向圆心可能不够，椭圆需要修正角度
-          let rotateAngle = theta + Math.PI / 2;
-          
-          // 简单的椭圆角度修正
-          const dx = -rx * Math.sin(theta);
-          const dy = ry * Math.cos(theta);
-          rotateAngle = Math.atan2(dy, dx) + Math.PI / 2;
-
-          ctx.rotate(rotateAngle);
-          ctx.fillText(char, 0, 0);
-          ctx.restore();
-      }
-      
-      ctx.restore();
-  },
-
-  // 3. 方形 (保持)
-  drawSquare(ctx, cx, cy, config) {
-    const size = 180;
-    const half = size / 2;
-    ctx.strokeRect(cx - half, cy - half, size, size);
-    
-    if (config.showPattern) {
-        ctx.lineWidth = 1;
-        ctx.strokeRect(cx - half + 6, cy - half + 6, size - 12, size - 12);
-        ctx.lineWidth = config.borderWidth;
-    }
-
-    // 自动字号调整
-    let fontSize = 20;
-    if (config.companyName.length > 8) fontSize = 16;
-    if (config.companyName.length > 12) fontSize = 14;
-    
-    ctx.font = `bold ${fontSize}px ${this.getFontFamily(config.fontType)}`;
-    
-    // 换行处理
-    const maxWidth = size - 20;
-    if (ctx.measureText(config.companyName).width > maxWidth) {
-         // 简单分行：一半一半
-         const mid = Math.ceil(config.companyName.length / 2);
-         ctx.fillText(config.companyName.substring(0, mid), cx, cy - 50);
-         ctx.fillText(config.companyName.substring(mid), cx, cy - 25);
-    } else {
-         ctx.fillText(config.companyName, cx, cy - 40);
-    }
-    
-    ctx.font = `bold 24px ${this.getFontFamily(config.fontType)}`;
-    ctx.fillText(config.centerText, cx, cy + 20);
-    ctx.font = '12px Helvetica';
-    ctx.fillText(config.securityCode, cx, cy + 70);
-  },
-  
-  // 4. 菱形 (优化：圆角菱形，上下三角布局)
-  drawRhombus(ctx, cx, cy, config) {
-      const w = 240; // 宽
-      const h = 160; // 高
-      const r = 10; // 圆角半径
-      
-      // 绘制圆角菱形路径
-      ctx.beginPath();
-      ctx.moveTo(cx, cy - h/2 + r); // 顶
-      ctx.quadraticCurveTo(cx, cy - h/2, cx + r * (w/h), cy - h/2 + r); // 顶角圆弧处理略复杂，简化为直线连接后用 lineJoin='round'
-      
-      // 使用 lineJoin 实现圆角
-      ctx.lineJoin = 'round';
-      ctx.beginPath();
-      ctx.moveTo(cx, cy - h/2);
-      ctx.lineTo(cx + w/2, cy);
-      ctx.lineTo(cx, cy + h/2);
-      ctx.lineTo(cx - w/2, cy);
-      ctx.closePath();
-      ctx.stroke();
-      ctx.lineJoin = 'miter'; // 恢复
-      
-      // 内花纹
-      if (config.showPattern) {
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          const gap = 6;
-          ctx.moveTo(cx, cy - h/2 + gap);
-          ctx.lineTo(cx + w/2 - gap, cy);
-          ctx.lineTo(cx, cy + h/2 - gap);
-          ctx.lineTo(cx - w/2 + gap, cy);
-          ctx.closePath();
-          ctx.stroke();
-          ctx.lineWidth = config.borderWidth;
-      }
-      
-      // 五角星：严格居中
-      // 大小：短对角线(h)的 1/5 = 32
-      this.drawStar(ctx, cx, cy, h / 5);
-      
-      // 文字布局：上下三角
-      // 上三角：公司名
-      ctx.font = `bold 16px ${this.getFontFamily(config.fontType)}`;
-      // 沿两条边排列太复杂，改为上方水平居中，但做字间距调整
-      // 或者分为两行
-      const splitIndex = Math.ceil(config.companyName.length / 2);
-      const part1 = config.companyName.substring(0, splitIndex);
-      const part2 = config.companyName.substring(splitIndex);
-      
-      // 简单的上下分布
-      ctx.fillText(config.companyName, cx, cy - h/4 - 10);
-      
-      // 下三角：公司类型/副文字
-      ctx.font = `bold 16px ${this.getFontFamily(config.fontType)}`;
-      // 如果公司名很长，这里显示有限责任公司
-      // 这里根据需求，下三角放 "有限责任公司" 或 副文字
-      // 假设副文字放中间五角星下方，或者下三角区域
-      ctx.fillText(config.centerText, cx, cy + h/4 + 20);
-      
-      // 编码
-      ctx.font = '10px Helvetica';
-      ctx.fillText(config.securityCode, cx, cy + h/2 - 15);
-  },
-  
-  // 5. 盾形 (优化：比例，防溢出)
-  drawShield(ctx, cx, cy, config) {
-      const w = 180;
-      const h = 216; // 1:1.2
-      const topH = h * 0.3; // 顶部平直区域 30%
-      
-      // 绘制盾牌
-      ctx.beginPath();
-      // 左上
-      ctx.moveTo(cx - w/2, cy - h/2);
-      // 右上
-      ctx.lineTo(cx + w/2, cy - h/2);
-      // 右侧平直
-      ctx.lineTo(cx + w/2, cy - h/2 + topH);
-      // 右下圆弧
-      ctx.bezierCurveTo(cx + w/2, cy + h/2, cx, cy + h/2, cx, cy + h/2);
-      // 左下圆弧
-      ctx.bezierCurveTo(cx, cy + h/2, cx - w/2, cy + h/2, cx - w/2, cy - h/2 + topH);
-      // 左侧平直
-      ctx.lineTo(cx - w/2, cy - h/2);
-      ctx.closePath();
-      ctx.stroke();
-      
-      // 内花纹
-      if (config.showPattern) {
-           ctx.lineWidth = 1;
-           const gap = 5;
-           ctx.beginPath();
-           ctx.moveTo(cx - w/2 + gap, cy - h/2 + gap);
-           ctx.lineTo(cx + w/2 - gap, cy - h/2 + gap);
-           ctx.lineTo(cx + w/2 - gap, cy - h/2 + topH);
-           ctx.bezierCurveTo(cx + w/2 - gap, cy + h/2 - gap, cx, cy + h/2 - gap, cx, cy + h/2 - gap);
-           ctx.bezierCurveTo(cx, cy + h/2 - gap, cx - w/2 + gap, cy + h/2 - gap, cx - w/2 + gap, cy - h/2 + topH);
-           ctx.lineTo(cx - w/2 + gap, cy - h/2 + gap);
-           ctx.stroke();
-           ctx.lineWidth = config.borderWidth;
-      }
-      
-      // 五角星：居中
-      this.drawStar(ctx, cx, cy, w / 4);
-      
-      // 公司名：自动字号压缩
-      let fontSize = 24;
-      ctx.font = `bold ${fontSize}px ${this.getFontFamily(config.fontType)}`;
-      const maxTextW = w - 30; // 安全边距
-      
-      // 级联降级
-      while (ctx.measureText(config.companyName).width > maxTextW && fontSize > 12) {
-          fontSize -= 2;
-          ctx.font = `bold ${fontSize}px ${this.getFontFamily(config.fontType)}`;
-      }
-      
-      // 如果还是太宽，分两行
-      if (ctx.measureText(config.companyName).width > maxTextW) {
-          fontSize = 16;
-          ctx.font = `bold ${fontSize}px ${this.getFontFamily(config.fontType)}`;
-          const mid = Math.ceil(config.companyName.length / 2);
-          ctx.fillText(config.companyName.substring(0, mid), cx, cy - h/2 + 40);
-          ctx.fillText(config.companyName.substring(mid), cx, cy - h/2 + 60);
+      // 如果中心文字较长，分两行显示
+      if (this.data.centerText.length > 5) {
+        const half = Math.ceil(this.data.centerText.length / 2);
+        const line1 = this.data.centerText.substring(0, half);
+        const line2 = this.data.centerText.substring(half);
+        ctx.fillText(line1, cx, cy - fontSize / 2);
+        ctx.fillText(line2, cx, cy + fontSize / 2);
       } else {
-          ctx.fillText(config.companyName, cx, cy - h/2 + 50);
+        ctx.fillText(this.data.centerText, cx, cy + 10);
       }
-      
-      // 副文字：下移
-      ctx.font = `bold 18px ${this.getFontFamily(config.fontType)}`;
-      ctx.fillText(config.centerText, cx, cy + h/3);
+    }
+
+    // 绘制五角星
+    this.drawStar(ctx, cx, cy - 70, 22);
   },
 
-  drawStar(ctx, x, y, r) {
-    ctx.save();
-    ctx.translate(x, y);
-    ctx.fillStyle = this.data.config.color; // 确保与边框同色
+  // 绘制椭圆印章
+  drawOvalSeal(ctx, cx, cy, horizontal) {
+    const radiusX = horizontal ? 280 : 220;
+    const radiusY = horizontal ? 160 : 180;
+    const innerRadiusX = horizontal ? 250 : 190;
+    const innerRadiusY = horizontal ? 130 : 150;
+
+    // 绘制外椭圆
     ctx.beginPath();
-    const dig = Math.PI / 5 * 4;
-    for (let i = 0; i < 5; i++) {
-      const x = Math.sin(i * dig);
-      const y = Math.cos(i * dig);
-      ctx.lineTo(x * r, -y * r);
+    ctx.ellipse(cx, cy, radiusX, radiusY, 0, 0, Math.PI * 2);
+    ctx.stroke();
+    
+    // 绘制内椭圆
+    ctx.beginPath();
+    ctx.ellipse(cx, cy, innerRadiusX, innerRadiusY, 0, 0, Math.PI * 2);
+    ctx.stroke();
+
+    // 绘制文字（多行）
+    const fontSize = 32 * (this.data.fontSize / 100);
+    ctx.font = `bold ${fontSize}px "SimSun", serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    const lineHeight = fontSize + 8;
+    let startY = cy;
+    
+    // 根据有多少行文字来调整起始位置
+    const lines = [this.data.line1Text, this.data.line2Text, this.data.line3Text].filter(t => t);
+    if (lines.length === 3) {
+      startY = cy - lineHeight;
+    } else if (lines.length === 2) {
+      startY = cy - lineHeight / 2;
     }
+
+    if (this.data.line1Text) {
+      ctx.fillText(this.data.line1Text, cx, startY);
+    }
+    if (this.data.line2Text) {
+      ctx.fillText(this.data.line2Text, cx, startY + lineHeight);
+    }
+    if (this.data.line3Text) {
+      ctx.fillText(this.data.line3Text, cx, startY + lineHeight * 2);
+    }
+  },
+
+  // 绘制方形印章
+  drawSquareSeal(ctx, cx, cy) {
+    const size = 380;
+    const innerSize = 340;
+    const x = cx - size / 2;
+    const y = cy - size / 2;
+    const innerX = cx - innerSize / 2;
+    const innerY = cy - innerSize / 2;
+
+    // 绘制外边框
+    ctx.strokeRect(x, y, size, size);
+    
+    // 绘制内边框
+    ctx.strokeRect(innerX, innerY, innerSize, innerSize);
+
+    // 绘制文字
+    const fontSize = 38 * (this.data.fontSize / 100);
+    ctx.font = `bold ${fontSize}px "SimSun", serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    const lineHeight = fontSize + 12;
+    let startY = cy;
+    
+    // 根据有多少行文字来调整起始位置
+    const lines = [this.data.line1Text, this.data.line2Text, this.data.line3Text].filter(t => t);
+    if (lines.length === 3) {
+      startY = cy - lineHeight;
+    } else if (lines.length === 2) {
+      startY = cy - lineHeight / 2;
+    }
+
+    if (this.data.line1Text) {
+      ctx.fillText(this.data.line1Text, cx, startY);
+    }
+    if (this.data.line2Text) {
+      ctx.fillText(this.data.line2Text, cx, startY + lineHeight);
+    }
+    if (this.data.line3Text) {
+      ctx.fillText(this.data.line3Text, cx, startY + lineHeight * 2);
+    }
+  },
+
+  // 绘制矩形印章
+  drawRectSeal(ctx, cx, cy) {
+    const width = 420;
+    const height = 280;
+    const innerWidth = 380;
+    const innerHeight = 240;
+    const x = cx - width / 2;
+    const y = cy - height / 2;
+    const innerX = cx - innerWidth / 2;
+    const innerY = cy - innerHeight / 2;
+
+    // 绘制外边框
+    ctx.strokeRect(x, y, width, height);
+    
+    // 绘制内边框
+    ctx.strokeRect(innerX, innerY, innerWidth, innerHeight);
+
+    // 绘制文字
+    const fontSize = 36 * (this.data.fontSize / 100);
+    ctx.font = `bold ${fontSize}px "SimSun", serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    const lineHeight = fontSize + 10;
+    let startY = cy;
+    
+    // 根据有多少行文字来调整起始位置
+    const lines = [this.data.line1Text, this.data.line2Text, this.data.line3Text].filter(t => t);
+    if (lines.length === 3) {
+      startY = cy - lineHeight;
+    } else if (lines.length === 2) {
+      startY = cy - lineHeight / 2;
+    }
+
+    if (this.data.line1Text) {
+      ctx.fillText(this.data.line1Text, cx, startY);
+    }
+    if (this.data.line2Text) {
+      ctx.fillText(this.data.line2Text, cx, startY + lineHeight);
+    }
+    if (this.data.line3Text) {
+      ctx.fillText(this.data.line3Text, cx, startY + lineHeight * 2);
+    }
+  },
+
+  // 绘制弧形文字
+  drawArcText(ctx, text, cx, cy, radius, angleRange) {
+    const chars = text.split('');
+    const charCount = chars.length;
+    const angleStep = angleRange / (charCount > 1 ? charCount - 1 : 1);
+    const startAngle = Math.PI / 2 + angleRange / 2;
+
+    const fontSize = 30 * (this.data.fontSize / 100);
+    ctx.font = `bold ${fontSize}px "SimSun", serif`;
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+
+    chars.forEach((char, i) => {
+      const angle = startAngle - angleStep * i;
+      const x = cx + radius * Math.cos(angle);
+      const y = cy - radius * Math.sin(angle);
+
+      ctx.save();
+      ctx.translate(x, y);
+      ctx.rotate(-angle + Math.PI / 2);
+      ctx.fillText(char, 0, 0);
+      ctx.restore();
+    });
+  },
+
+  // 绘制五角星
+  drawStar(ctx, cx, cy, radius) {
+    ctx.save();
+    ctx.translate(cx, cy);
+    ctx.beginPath();
+    
+    for (let i = 0; i < 5; i++) {
+      const angle = (Math.PI * 2 * i) / 5 - Math.PI / 2;
+      const x = radius * Math.cos(angle);
+      const y = radius * Math.sin(angle);
+      
+      if (i === 0) {
+        ctx.moveTo(x, y);
+      } else {
+        ctx.lineTo(x, y);
+      }
+      
+      const innerAngle = angle + Math.PI / 5;
+      const innerX = (radius * 0.38) * Math.cos(innerAngle);
+      const innerY = (radius * 0.38) * Math.sin(innerAngle);
+      ctx.lineTo(innerX, innerY);
+    }
+    
     ctx.closePath();
     ctx.fill();
     ctx.restore();
   },
 
-  drawCurvedText(ctx, text, cx, cy, radius, isTop, totalAngleOverride) {
-    if (!text) return;
-    ctx.save();
+  // 选择形状
+  selectShape(e) {
+    const shape = e.currentTarget.dataset.shape;
+    this.setData({ currentShape: shape });
+    this.drawSeal();
+  },
+
+  // 文字输入
+  onOuterTextInput(e) {
+    this.setData({ outerText: e.detail.value });
+    this.drawSeal();
+  },
+
+  onCenterTextInput(e) {
+    this.setData({ centerText: e.detail.value });
+    this.drawSeal();
+  },
+
+  onLine1Input(e) {
+    this.setData({ line1Text: e.detail.value });
+    this.drawSeal();
+  },
+
+  onLine2Input(e) {
+    this.setData({ line2Text: e.detail.value });
+    this.drawSeal();
+  },
+
+  onLine3Input(e) {
+    this.setData({ line3Text: e.detail.value });
+    this.drawSeal();
+  },
+
+  // 选择颜色
+  selectColor(e) {
+    const color = e.currentTarget.dataset.color;
+    this.setData({ sealColor: color });
+    this.drawSeal();
+  },
+
+  // 调整字体大小（拖动中）
+  onFontSizeChanging(e) {
+    this.setData({ fontSize: e.detail.value });
+  },
+
+  // 调整字体大小（松手后）
+  onFontSizeChange(e) {
+    const value = e.detail.value;
+    this.setData({ fontSize: value });
+    this.drawSeal();
+  },
+
+  // 调整边框粗细（拖动中）
+  onBorderWidthChanging(e) {
+    this.setData({ borderWidth: e.detail.value });
+  },
+
+  // 调整边框粗细（松手后）
+  onBorderWidthChange(e) {
+    const value = e.detail.value;
+    this.setData({ borderWidth: value });
+    this.drawSeal();
+  },
+
+  // 重置
+  resetSeal() {
+    const shape = this.data.currentShape;
     
-    // 动态字间距
-    let spacing = 0;
-    if (text.length <= 6) spacing = 0.2; // 短文本加宽
-    if (text.length >= 12) spacing = -0.1; // 长文本压缩
-    
-    // 字体大小自动调整
-    let fontSize = 20;
-    if (text.length > 12) fontSize = 16;
-    ctx.font = `bold ${fontSize}px ${this.getFontFamily(this.data.config.fontType)}`;
-    
-    const totalAngle = totalAngleOverride || (isTop ? Math.PI * 0.8 : Math.PI * 0.5);
-    // 考虑字间距调整角度
-    const anglePerChar = (totalAngle / (text.length + 1)) * (1 + spacing);
-    
-    const startAngle = isTop 
-        ? -Math.PI / 2 - (anglePerChar * (text.length - 1)) / 2
-        : Math.PI / 2 - (anglePerChar * (text.length - 1)) / 2;
-    
-    for (let i = 0; i < text.length; i++) {
-      ctx.save();
-      const angle = startAngle + i * anglePerChar;
-      ctx.translate(cx + Math.cos(angle) * radius, cy + Math.sin(angle) * radius);
-      if (isTop) ctx.rotate(angle + Math.PI / 2);
-      else ctx.rotate(angle - Math.PI / 2);
-      ctx.fillText(text[i], 0, 0);
-      ctx.restore();
+    if (shape === 'circle') {
+      this.setData({
+        outerText: 'XX科技有限公司',
+        centerText: '合同专用章',
+        sealColor: '#DE2910',
+        fontSize: 100,
+        borderWidth: 2
+      });
+    } else {
+      this.setData({
+        line1Text: '公司名称',
+        line2Text: '部门名称',
+        line3Text: '专用章',
+        sealColor: '#DE2910',
+        fontSize: 100,
+        borderWidth: 2
+      });
     }
-    ctx.restore();
+    
+    this.drawSeal();
+    
+    wx.showToast({
+      title: '已重置',
+      icon: 'success'
+    });
   },
 
-  getFontFamily(type) {
-      switch(type) {
-          case 'song': return 'SimSun, "Songti SC"';
-          case 'hei': return 'SimHei, "Heiti SC", sans-serif';
-          case 'kai': return 'KaiTi, "Kaiti SC"';
-          default: return 'sans-serif';
-      }
-  },
+  // 下载印章
+  downloadSeal() {
+    if (!this.canvas) {
+      wx.showToast({
+        title: 'Canvas 未初始化',
+        icon: 'none'
+      });
+      return;
+    }
 
-  // --- 保存 ---
-  saveImage() {
-    wx.vibrateShort({ type: 'medium' });
+    wx.showLoading({
+      title: '生成中...',
+      mask: true
+    });
+
+    // 导出图片
     wx.canvasToTempFilePath({
       canvas: this.canvas,
-      width: 300,
-      height: 300,
-      destWidth: 1000,
-      destHeight: 1000,
+      fileType: 'png',
+      quality: 1,
       success: (res) => {
-        wx.saveImageToPhotosAlbum({
-          filePath: res.tempFilePath,
+        wx.hideLoading();
+        
+        // 保存到相册
+        wx.authorize({
+          scope: 'scope.writePhotosAlbum',
           success: () => {
-             // 弹出分享引导
-             wx.showModal({
-                 title: '保存成功',
-                 content: '印章已保存到相册。是否去分享给好友？',
-                 confirmText: '去分享',
-                 confirmColor: '#1A5F4A',
-                 success: (r) => {
-                     if (r.confirm) {
-                         wx.showToast({ title: '请点击右上角分享', icon: 'none' });
-                     }
-                 }
-             });
+            this.saveToAlbum(res.tempFilePath);
           },
-          fail: () => wx.showToast({ title: '保存失败', icon: 'none' })
+          fail: () => {
+            wx.showModal({
+              title: '需要相册权限',
+              content: '保存图片需要访问您的相册',
+              confirmText: '去设置',
+              success: (modalRes) => {
+                if (modalRes.confirm) {
+                  wx.openSetting({
+                    success: (settingRes) => {
+                      if (settingRes.authSetting['scope.writePhotosAlbum']) {
+                        this.saveToAlbum(res.tempFilePath);
+                      }
+                    }
+                  });
+                }
+              }
+            });
+          }
+        });
+      },
+      fail: (err) => {
+        wx.hideLoading();
+        wx.showToast({
+          title: '生成失败',
+          icon: 'none'
+        });
+      }
+    }, this);
+  },
+
+  // 保存到相册
+  saveToAlbum(filePath) {
+    wx.saveImageToPhotosAlbum({
+      filePath: filePath,
+      success: () => {
+        wx.showToast({
+          title: '已保存到相册',
+          icon: 'success'
+        });
+      },
+      fail: (err) => {
+        wx.showModal({
+          title: '保存失败',
+          content: err.errMsg || '请重试',
+          showCancel: false
         });
       }
     });
   },
-  
-  showSaveOptions() {
-      wx.showActionSheet({
-          itemList: ['保存高清透明版 (PNG)', '保存带背景版 (JPG)'],
-          success: (res) => {
-              if (res.tapIndex === 0) this.saveImage();
-              else wx.showToast({ title: '带背景版开发中', icon: 'none' });
-          }
-      });
+
+  // 显示帮助
+  showHelp() {
+    this.setData({ showHelpModal: true });
   },
 
+  // 隐藏帮助
+  hideHelp() {
+    this.setData({ showHelpModal: false });
+  },
+
+  // 阻止冒泡
+  stopPropagation() {},
+
+  // 分享配置
   onShareAppMessage() {
-      return {
-          title: '制作我的电子印章',
-          path: '/pages/electronic-seal/electronic-seal'
-      };
+    return {
+      title: '电子印章 - 快速生成电子印章',
+      path: '/pages/electronic-seal/electronic-seal',
+      imageUrl: ''
+    };
+  },
+
+  onShareTimeline() {
+    return {
+      title: '电子印章 - 快速生成电子印章'
+    };
   }
 });

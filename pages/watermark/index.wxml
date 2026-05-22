@@ -1,0 +1,430 @@
+<!-- 水印工具 - 页面结构 -->
+<view class="container">
+  <!-- 自定义导航栏 -->
+  <navigation-bar 
+    title="水印工具" 
+    statusBarHeight="{{statusBarHeight}}" 
+    navBarHeight="{{navBarHeight}}"
+    bind:back="navigateBack"
+  >
+    <view slot="right" class="nav-right">
+      <view class="reset-btn" bindtap="reset">重置</view>
+    </view>
+  </navigation-bar>
+
+  <!-- 内容区域 -->
+  <view class="content">
+    <!-- 预览区 -->
+    <view class="preview-section">
+      <canvas 
+        type="2d" 
+        id="watermarkCanvas" 
+        class="watermark-canvas"
+        bindtouchstart="onCanvasTouchStart"
+        bindtouchmove="onCanvasTouchMove"
+        bindtouchend="onCanvasTouchEnd"
+        bindtouchcancel="onCanvasTouchEnd"
+      ></canvas>
+      
+      <!-- 拖拽提示 -->
+      <view class="drag-hint" wx:if="{{hasImage && !isDragging && watermarkType !== 'tiled'}}">
+        <text class="icon icon-hand">✋</text>
+        <text class="hint-text">拖动水印调整位置，双指缩放查看细节</text>
+      </view>
+    </view>
+
+    <!-- 水印类型切换 Tab -->
+    <view class="tab-bar">
+      <view 
+        class="tab-item {{watermarkType === 'text' ? 'active' : ''}}" 
+        bindtap="switchWatermarkType" 
+        data-type="text"
+      >
+        <text class="icon icon-text">A</text>
+        <text class="tab-text">文字水印</text>
+      </view>
+      <view 
+        class="tab-item {{watermarkType === 'image' ? 'active' : ''}}" 
+        bindtap="switchWatermarkType" 
+        data-type="image"
+      >
+        <text class="icon icon-image">◈</text>
+        <text class="tab-text">图片水印</text>
+      </view>
+      <view 
+        class="tab-item {{watermarkType === 'tiled' ? 'active' : ''}}" 
+        bindtap="switchWatermarkType" 
+        data-type="tiled"
+      >
+        <text class="icon icon-grid">▦</text>
+        <text class="tab-text">全屏平铺</text>
+      </view>
+    </view>
+
+    <!-- 参数调节区 -->
+    <scroll-view class="params-section" scroll-y>
+      <!-- 文字水印参数 -->
+      <view class="params-content" wx:if="{{watermarkType === 'text'}}">
+        <view class="param-group">
+          <view class="param-label">水印文字</view>
+          <input 
+            class="param-input" 
+            placeholder="请输入水印文字" 
+            value="{{textWatermark.content}}"
+            bindinput="onTextInput"
+          />
+        </view>
+
+        <!-- 多行文字 -->
+        <view class="param-group" wx:if="{{textWatermark.lines.length > 0}}">
+          <view class="param-label">多行文字</view>
+          <view class="multi-lines">
+            <view class="line-item" wx:for="{{textWatermark.lines}}" wx:key="index">
+              <view class="line-header">
+                <text class="line-number">第 {{index + 1}} 行</text>
+              </view>
+              <input 
+                class="line-input" 
+                placeholder="请输入第{{index + 1}}行文字" 
+                value="{{item.content}}"
+                data-index="{{index}}"
+                bindinput="onLineTextInput"
+              />
+              <view class="line-font-size">
+                <text class="line-label">字号：{{item.fontSize}}px</text>
+                <slider 
+                  class="line-slider" 
+                  min="12" 
+                  max="200" 
+                  value="{{item.fontSize}}"
+                  data-index="{{index}}"
+                  bindchange="onLineFontSizeChange"
+                  block-size="24"
+                  activeColor="#4A90D9"
+                />
+              </view>
+              <view class="line-actions">
+                <view class="line-remove-btn" data-index="{{index}}" bindtap="removeTextLine">
+                  <text class="icon icon-delete">×</text>
+                  <text class="remove-text">删除此行</text>
+                </view>
+              </view>
+            </view>
+          </view>
+        </view>
+
+        <view class="param-group" wx:if="{{textWatermark.lines.length < 3}}">
+          <button class="add-line-btn" bindtap="addTextLine">+ 添加一行</button>
+        </view>
+
+        <view class="param-group">
+          <view class="param-label">字号：{{textWatermark.fontSize}}px</view>
+          <slider 
+            class="param-slider" 
+            min="12" 
+            max="200" 
+            value="{{textWatermark.fontSize}}"
+            bindchange="onFontSizeChange"
+            block-size="28"
+            activeColor="#4A90D9"
+          />
+        </view>
+
+        <view class="param-group">
+          <view class="param-label">透明度：{{textWatermark.opacity * 100}}%</view>
+          <slider 
+            class="param-slider" 
+            min="0" 
+            max="100" 
+            value="{{textWatermark.opacity * 100}}"
+            bindchange="onTextOpacityChange"
+            block-size="28"
+            activeColor="#4A90D9"
+          />
+        </view>
+
+        <view class="param-group">
+          <view class="param-label">旋转角度：{{textWatermark.rotation}}°</view>
+          <slider 
+            class="param-slider" 
+            min="-180" 
+            max="180" 
+            value="{{textWatermark.rotation}}"
+            bindchange="onTextRotationChange"
+            block-size="28"
+            activeColor="#4A90D9"
+          />
+          <view class="quick-angles">
+            <view class="angle-btn" bindtap="setTextRotation" data-angle="0">0°</view>
+            <view class="angle-btn" bindtap="setTextRotation" data-angle="45">45°</view>
+            <view class="angle-btn" bindtap="setTextRotation" data-angle="90">90°</view>
+            <view class="angle-btn" bindtap="setTextRotation" data-angle="-45">-45°</view>
+          </view>
+        </view>
+
+        <view class="param-group">
+          <view class="param-label">字体颜色</view>
+          <view class="color-picker">
+            <view 
+              class="color-item {{textWatermark.color === '#ffffff' ? 'active' : ''}}" 
+              style="background: #ffffff; border: 1px solid #ddd;"
+              bindtap="setTextColor" 
+              data-color="#ffffff"
+            ></view>
+            <view 
+              class="color-item {{textWatermark.color === '#000000' ? 'active' : ''}}" 
+              style="background: #000000;"
+              bindtap="setTextColor" 
+              data-color="#000000"
+            ></view>
+            <view 
+              class="color-item {{textWatermark.color === '#ff0000' ? 'active' : ''}}" 
+              style="background: #ff0000;"
+              bindtap="setTextColor" 
+              data-color="#ff0000"
+            ></view>
+            <view 
+              class="color-item {{textWatermark.color === '#999999' ? 'active' : ''}}" 
+              style="background: #999999;"
+              bindtap="setTextColor" 
+              data-color="#999999"
+            ></view>
+            <view 
+              class="color-item {{textWatermark.color === '#0000ff' ? 'active' : ''}}" 
+              style="background: #0000ff;"
+              bindtap="setTextColor" 
+              data-color="#0000ff"
+            ></view>
+            <view 
+              class="color-item {{textWatermark.color === '#ffff00' ? 'active' : ''}}" 
+              style="background: #ffff00;"
+              bindtap="setTextColor" 
+              data-color="#ffff00"
+            ></view>
+          </view>
+        </view>
+
+        <!-- 快捷定位 -->
+        <view class="param-group" wx:if="{{hasImage}}">
+          <view class="param-label">快捷定位</view>
+          <view class="quick-positions">
+            <view class="position-btn" bindtap="quickPosition" data-position="top-left">
+              <text class="icon icon-arrow-tl">◤</text>
+              <text class="position-text">左上</text>
+            </view>
+            <view class="position-btn" bindtap="quickPosition" data-position="top-right">
+              <text class="icon icon-arrow-tr">◥</text>
+              <text class="position-text">右上</text>
+            </view>
+            <view class="position-btn" bindtap="quickPosition" data-position="center">
+              <text class="icon icon-center">●</text>
+              <text class="position-text">居中</text>
+            </view>
+            <view class="position-btn" bindtap="quickPosition" data-position="bottom-left">
+              <text class="icon icon-arrow-bl">◣</text>
+              <text class="position-text">左下</text>
+            </view>
+            <view class="position-btn" bindtap="quickPosition" data-position="bottom-right">
+              <text class="icon icon-arrow-br">◢</text>
+              <text class="position-text">右下</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 图片水印参数 -->
+      <view class="params-content" wx:if="{{watermarkType === 'image'}}">
+        <view class="param-group">
+          <view class="param-label">选择水印图</view>
+          <button class="choose-watermark-btn" bindtap="chooseWatermarkImage">
+            {{imageWatermark.path ? '更换水印图' : '选择水印图'}}
+          </button>
+        </view>
+
+        <view class="param-group" wx:if="{{imageWatermark.path}}">
+          <view class="param-label">缩放：{{imageWatermark.scale * 100}}%</view>
+          <slider 
+            class="param-slider" 
+            min="10" 
+            max="200" 
+            value="{{imageWatermark.scale * 100}}"
+            bindchange="onImageScaleChange"
+            block-size="28"
+            activeColor="#4A90D9"
+          />
+        </view>
+
+        <view class="param-group" wx:if="{{imageWatermark.path}}">
+          <view class="param-label">透明度：{{imageWatermark.opacity * 100}}%</view>
+          <slider 
+            class="param-slider" 
+            min="0" 
+            max="100" 
+            value="{{imageWatermark.opacity * 100}}"
+            bindchange="onImageOpacityChange"
+            block-size="28"
+            activeColor="#4A90D9"
+          />
+        </view>
+
+        <view class="param-group" wx:if="{{imageWatermark.path}}">
+          <view class="param-label">旋转角度：{{imageWatermark.rotation}}°</view>
+          <slider 
+            class="param-slider" 
+            min="-180" 
+            max="180" 
+            value="{{imageWatermark.rotation}}"
+            bindchange="onImageRotationChange"
+            block-size="28"
+            activeColor="#4A90D9"
+          />
+        </view>
+
+        <!-- 快捷定位 -->
+        <view class="param-group" wx:if="{{hasImage && imageWatermark.path}}">
+          <view class="param-label">快捷定位</view>
+          <view class="quick-positions">
+            <view class="position-btn" bindtap="quickPosition" data-position="top-left">
+              <text class="icon icon-arrow-tl">◤</text>
+              <text class="position-text">左上</text>
+            </view>
+            <view class="position-btn" bindtap="quickPosition" data-position="top-right">
+              <text class="icon icon-arrow-tr">◥</text>
+              <text class="position-text">右上</text>
+            </view>
+            <view class="position-btn" bindtap="quickPosition" data-position="center">
+              <text class="icon icon-center">●</text>
+              <text class="position-text">居中</text>
+            </view>
+            <view class="position-btn" bindtap="quickPosition" data-position="bottom-left">
+              <text class="icon icon-arrow-bl">◣</text>
+              <text class="position-text">左下</text>
+            </view>
+            <view class="position-btn" bindtap="quickPosition" data-position="bottom-right">
+              <text class="icon icon-arrow-br">◢</text>
+              <text class="position-text">右下</text>
+            </view>
+          </view>
+        </view>
+      </view>
+
+      <!-- 平铺水印参数 -->
+      <view class="params-content" wx:if="{{watermarkType === 'tiled'}}">
+        <view class="param-group">
+          <view class="param-label">平铺模式</view>
+          <view class="mode-switch">
+            <view 
+              class="mode-btn {{tiledWatermark.mode === 'text' ? 'active' : ''}}"
+              bindtap="setTiledMode"
+              data-mode="text"
+            >文字平铺</view>
+            <view 
+              class="mode-btn {{tiledWatermark.mode === 'image' ? 'active' : ''}}"
+              bindtap="setTiledMode"
+              data-mode="image"
+            >图片平铺</view>
+          </view>
+        </view>
+
+        <view class="param-group" wx:if="{{tiledWatermark.mode === 'text'}}">
+          <view class="param-label">平铺文字</view>
+          <input 
+            class="param-input" 
+            placeholder="请输入平铺文字" 
+            value="{{tiledWatermark.textContent}}"
+            bindinput="onTiledTextInput"
+          />
+        </view>
+
+        <view class="param-group" wx:if="{{tiledWatermark.mode === 'image'}}">
+          <view class="param-label">选择平铺图片</view>
+          <button class="choose-watermark-btn" bindtap="chooseWatermarkImage">
+            {{imageWatermark.path ? '更换平铺图片' : '选择平铺图片'}}
+          </button>
+        </view>
+
+        <view class="param-group" wx:if="{{tiledWatermark.mode === 'image' && imageWatermark.path}}">
+          <view class="param-label">图片缩放：{{imageWatermark.scale * 100}}%</view>
+          <slider 
+            class="param-slider" 
+            min="10" 
+            max="200" 
+            value="{{imageWatermark.scale * 100}}"
+            bindchange="onImageScaleChange"
+            block-size="28"
+            activeColor="#4A90D9"
+          />
+        </view>
+
+        <view class="param-group" wx:if="{{tiledWatermark.mode === 'image' && imageWatermark.path}}">
+          <view class="param-label">图片透明度：{{imageWatermark.opacity * 100}}%</view>
+          <slider 
+            class="param-slider" 
+            min="0" 
+            max="100" 
+            value="{{imageWatermark.opacity * 100}}"
+            bindchange="onImageOpacityChange"
+            block-size="28"
+            activeColor="#4A90D9"
+          />
+        </view>
+
+        <view class="param-group">
+          <view class="param-label">行间距：{{tiledWatermark.rowGap}}px</view>
+          <slider 
+            class="param-slider" 
+            min="0" 
+            max="200" 
+            value="{{tiledWatermark.rowGap}}"
+            bindchange="onRowGapChange"
+            block-size="28"
+            activeColor="#4A90D9"
+          />
+        </view>
+
+        <view class="param-group">
+          <view class="param-label">列间距：{{tiledWatermark.colGap}}px</view>
+          <slider 
+            class="param-slider" 
+            min="0" 
+            max="200" 
+            value="{{tiledWatermark.colGap}}"
+            bindchange="onColGapChange"
+            block-size="28"
+            activeColor="#4A90D9"
+          />
+        </view>
+
+        <view class="param-group">
+          <view class="param-label">旋转角度：{{tiledWatermark.rotation}}°</view>
+          <slider 
+            class="param-slider" 
+            min="-180" 
+            max="180" 
+            value="{{tiledWatermark.rotation}}"
+            bindchange="onTiledRotationChange"
+            block-size="28"
+            activeColor="#4A90D9"
+          />
+          <view class="quick-angles">
+            <view class="angle-btn" bindtap="setTiledRotation" data-angle="15">15°</view>
+            <view class="angle-btn" bindtap="setTiledRotation" data-angle="30">30°</view>
+            <view class="angle-btn" bindtap="setTiledRotation" data-angle="45">45°</view>
+          </view>
+        </view>
+      </view>
+    </scroll-view>
+  </view>
+
+  <!-- 底部操作栏 -->
+  <view class="bottom-bar">
+    <view class="bottom-btn secondary" bindtap="chooseImage">
+      <text class="icon icon-folder">▣</text>
+      <text class="btn-text">选择图片</text>
+    </view>
+    <view class="bottom-btn primary {{canSave ? '' : 'disabled'}}" bindtap="saveToAlbum">
+      <text class="btn-icon">💾</text>
+      <text class="btn-text">保存到相册</text>
+    </view>
+  </view>
+</view>

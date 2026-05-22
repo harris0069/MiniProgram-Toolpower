@@ -1,0 +1,212 @@
+/* 纪念日工具 - 详情页 V1.0.1 */
+.container {
+  width: 100%;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #FFE5F0 0%, #FFF0F7 100%);
+}
+
+.content {
+  width: 100%;
+  min-height: calc(100vh - 140rpx);
+  padding: 0 30rpx 140rpx 30rpx;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+}
+
+/* 顶部区域 */
+.top-section {
+  width: 100%;
+  text-align: center;
+  margin-bottom: 60rpx;
+  position: relative;
+}
+
+.anniversary-name {
+  font-size: 48rpx;
+  font-weight: 700;
+  color: #333;
+  line-height: 1.5;
+  word-break: break-all;
+  margin-bottom: 24rpx;
+}
+
+.category-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 12rpx 24rpx;
+  background: #FFFFFF;
+  border-radius: 24rpx;
+  box-shadow: 0 4rpx 12rpx rgba(0, 0, 0, 0.08);
+}
+
+.category-icon {
+  font-size: 28rpx;
+  line-height: 1;
+}
+
+.category-text {
+  font-size: 26rpx;
+  color: #666;
+  font-weight: 500;
+}
+
+/* 核心区域 */
+.core-section {
+  width: 100%;
+  border-radius: 32rpx;
+  padding: 60rpx 40rpx;
+  box-shadow: 0 8rpx 32rpx rgba(255, 182, 217, 0.15);
+  text-align: center;
+  transition: background 0.3s ease;
+}
+
+.count-number {
+  font-size: 120rpx;
+  font-weight: 700;
+  color: #FF6B9D;
+  line-height: 1;
+  margin-bottom: 24rpx;
+}
+
+.count-text {
+  font-size: 36rpx;
+  font-weight: 600;
+  color: #333;
+  margin-bottom: 40rpx;
+}
+
+.divider {
+  width: 120rpx;
+  height: 4rpx;
+  background: linear-gradient(90deg, transparent, #FF6B9D, transparent);
+  margin: 0 auto 40rpx;
+  border-radius: 2rpx;
+}
+
+.date-label {
+  font-size: 28rpx;
+  color: #999;
+  margin-bottom: 16rpx;
+}
+
+.date-value {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #333;
+  line-height: 1.5;
+}
+
+.calendar-type {
+  font-size: 24rpx;
+  color: #BFBFBF;
+  margin-top: 12rpx;
+}
+
+/* 操作按钮 */
+.button-wrapper {
+  position: fixed;
+  bottom: 40rpx;
+  left: 30rpx;
+  right: 30rpx;
+  display: flex;
+  gap: 20rpx;
+}
+
+.action-button {
+  flex: 1;
+  height: 88rpx;
+  border-radius: 44rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  font-size: 28rpx;
+  font-weight: 500;
+  border: none;
+  transition: all 0.3s ease;
+}
+
+.action-button::after {
+  border: none;
+}
+
+.edit-button {
+  background: #95A5A6;
+  color: #FFFFFF;
+}
+
+.delete-button {
+  background: #E74C3C;
+  color: #FFFFFF;
+}
+
+.action-button:active {
+  transform: scale(0.96);
+}
+
+.button-icon {
+  font-size: 36rpx;
+  line-height: 1;
+}
+
+.button-text {
+  font-size: 28rpx;
+}
+
+
+/* 周年显示 */
+.anniversary-year {
+  font-size: 32rpx;
+  font-weight: 600;
+  color: #FF6B9D;
+  margin-bottom: 16rpx;
+}
+
+/* 重复标注 */
+.repeat-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 8rpx;
+  padding: 12rpx 24rpx;
+  background: rgba(255, 107, 157, 0.1);
+  border-radius: 24rpx;
+  margin-top: 24rpx;
+}
+
+.repeat-icon {
+  font-size: 24rpx;
+  line-height: 1;
+}
+
+.repeat-text {
+  font-size: 24rpx;
+  color: #FF6B9D;
+  font-weight: 500;
+}
+
+/* 备注区域 */
+.remark-section {
+  width: 100%;
+  margin-top: 32rpx;
+  padding-top: 32rpx;
+  border-top: 2rpx solid rgba(0, 0, 0, 0.05);
+  text-align: left;
+}
+
+.remark-label {
+  font-size: 24rpx;
+  color: #999;
+  margin-bottom: 12rpx;
+}
+
+.remark-text {
+  font-size: 28rpx;
+  color: #666;
+  line-height: 1.6;
+  word-break: break-all;
+  white-space: pre-wrap;
+}

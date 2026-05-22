@@ -23,7 +23,10 @@ page {
   --shadow-color: rgba(0, 0, 0, 0.04);
 }
 
-page[theme="dark"] {
+page[theme="dark"],
+.calendar-container[theme="dark"],
+.picker-overlay[theme="dark"],
+.term-card-overlay[theme="dark"] {
   /* Dark Theme */
   --bg-color: #1F1F1F; /* 深墨色 */
   --container-bg-color: #2C2C2C;
@@ -242,6 +245,13 @@ page[theme="dark"] {
   height: 20px;
 }
 
+.back-icon {
+  font-size: 28px;
+  font-weight: 300;
+  color: var(--text-color-primary);
+  line-height: 1;
+}
+
 .more-icon {
   width: 24px;
   height: 24px;
@@ -252,15 +262,15 @@ page[theme="dark"] {
 .week-header {
   display: flex;
   justify-content: space-around;
-  padding: 10px 0;
-  background-color: var(--week-header-bg);
-  border-top: 1px solid var(--border-color);
+  padding: 8px 0;
+  background-color: transparent;
   border-bottom: 1px solid var(--border-color);
-  margin-top: 16px;
+  margin-top: 12px;
+  margin-bottom: 2px;
 }
 
 .calendar-swiper {
-  height: 420px; /* 6 rows * 70px */
+  height: 360px; /* 6 rows * 56px + gaps */
   transition: opacity 0.4s ease-in-out;
 }
 
@@ -281,24 +291,24 @@ page[theme="dark"] {
 
 .calendar-grid {
   display: grid;
-  grid-template-columns: repeat(7, 44px);
-  grid-auto-rows: 48px;
-  gap: 8px;
+  grid-template-columns: repeat(7, 1fr);
+  grid-auto-rows: 56px;
+  gap: 4px;
   justify-content: space-between;
-  padding: 0 4px; /* Align grid */
+  padding: 4px 0;
 }
 
 .day-cell {
   position: relative;
-  width: 44px;
-  height: 48px;
+  width: 100%;
+  height: 56px;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
   box-sizing: border-box;
-  border-radius: 12px;
-  transition: all 0.2s ease-in-out;
+  border-radius: 10px;
+  transition: background-color 0.15s ease-in-out;
   overflow: visible;
 }
 
@@ -315,7 +325,12 @@ page[theme="dark"] {
 .day-cell.disabled .solar-date,
 .day-cell.disabled .lunar-date {
   color: var(--text-color-disabled);
-  opacity: 0.6;
+  opacity: 0.5;
+}
+
+/* 非当前月份的日期可点击提示 */
+.day-cell.disabled:active {
+  background-color: rgba(0, 0, 0, 0.03);
 }
 
 .solar-date {
@@ -325,17 +340,13 @@ page[theme="dark"] {
   color: var(--text-color-primary);
 }
 
-/* Remove old 'today' breathing animation */
+/* 今日：底部小圆点标记 */
+.day-cell.today {
+  background-color: var(--week-header-bg);
+}
 .day-cell.today .solar-date {
-  background-color: transparent;
-  color: var(--text-color-primary);
-  border-radius: 0;
-  width: auto;
-  height: auto;
-  line-height: 1;
-  text-align: center;
-  animation: none;
-  box-shadow: none;
+  color: var(--text-color-accent);
+  font-weight: 700;
 }
 
 .day-cell.selected {
@@ -349,15 +360,22 @@ page[theme="dark"] {
   color: var(--text-color-inverse);
 }
 
-/* New 'Today' + 'Selected' indicator */
+/* 今日且选中：右上角黄点标记 */
+.day-cell.today.selected {
+  background-color: var(--selected-bg-color);
+}
+.day-cell.today.selected .solar-date {
+  color: var(--text-color-inverse);
+  font-weight: 700;
+}
 .day-cell.today.selected::after {
   content: '';
   position: absolute;
-  top: 4px;
-  right: 4px;
-  width: 4px;
-  height: 4px;
-  background-color: var(--today-bg-color); /* Yellow dot */
+  top: 5px;
+  right: 5px;
+  width: 5px;
+  height: 5px;
+  background-color: var(--today-bg-color);
   border-radius: 50%;
 }
 
@@ -387,11 +405,11 @@ page[theme="dark"] {
 
 /* New Date Detail View Styles */
 .date-detail-view {
-  background-color: #FFFFFF;
+  background-color: var(--container-bg-secondary);
   border-radius: 16px;
-  box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  border: 1px solid var(--border-color);
   padding: 16px;
-  margin-top: 20px;
+  margin-top: 12px;
 }
 
 .detail-header {
@@ -400,9 +418,10 @@ page[theme="dark"] {
 }
 
 .lunar-date-main {
-  font-size: 14px;
+  font-size: 15px;
   color: var(--text-color-primary);
-  font-weight: 500;
+  font-weight: 600;
+  font-family: 'Source Han Serif', '思源宋体', serif;
 }
 
 .lunar-ganzhi {
@@ -412,8 +431,8 @@ page[theme="dark"] {
 
 .detail-divider {
   height: 1px;
-  background-color: #F0F0F0;
-  margin: 12px 0;
+  background-color: var(--border-color);
+  margin: 10px 0;
 }
 
 .yi-ji-row {
@@ -480,40 +499,57 @@ page[theme="dark"] {
 
 /* 模式切换按钮 */
 .mode-switch-btn {
-  font-size: 13px;
+  font-size: 12px;
   color: var(--text-color-secondary);
-  border: 1px solid #D4D4D4;
+  border: 1px solid var(--border-color);
   background-color: transparent;
   border-radius: 16px;
-  padding: 8px 16px;
+  padding: 6px 12px;
   text-align: center;
   line-height: 1;
-  align-self: center; /* Vertically center */
+  align-self: center;
+}
+/* 农历模式激活态 */
+.mode-switch-btn.lunar-active {
+  color: var(--text-color-accent);
+  border-color: var(--text-color-accent);
+  background-color: rgba(166, 123, 91, 0.08);
 }
 
 /* 农历选择器 */
 .lunar-picker-container {
-  padding: 20rpx 30rpx;
-  background-color: #f7f7f7;
-  border-bottom: 1rpx solid var(--border-color);
+  padding: 10px 12px;
+  background-color: var(--week-header-bg);
+  border-radius: 10px;
+  margin-bottom: 8px;
   display: flex;
   align-items: center;
   justify-content: space-between;
 }
 
 .picker-display {
-  font-size: 16px;
-  padding: 15rpx;
-  border: 1rpx solid #ddd;
-  border-radius: 8rpx;
-  background-color: var(--picker-bg);
-  width: 500rpx;
+  font-size: 14px;
+  padding: 8px 10px;
+  border: 1px solid var(--border-color);
+  border-radius: 8px;
+  background-color: var(--container-bg-color);
+  flex: 1;
   text-align: center;
+  color: var(--text-color-primary);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .confirm-lunar-btn {
   font-size: 14px;
-  margin-left: 20rpx;
+  margin: 0 0 0 8px;
+  color: var(--text-color-accent);
+  background-color: transparent;
+  border: none;
+  padding: 0 4px;
+  flex-shrink: 0;
+  line-height: 1;
 }
 
 /* 新增的节日和节气高亮样式 */
@@ -521,10 +557,10 @@ page[theme="dark"] {
 /* 日历网格中的文本颜色 */
 .lunar-date {
   font-family: 'Source Han Serif', '思源宋体', serif;
-  font-size: 10px;
+  font-size: 11px;
   font-weight: 400;
   color: var(--text-color-secondary);
-  margin-top: 4px;
+  margin-top: 3px;
 }
 
 .holiday-tag {
@@ -534,16 +570,6 @@ page[theme="dark"] {
   padding: 2px 4px;
   border-radius: 4px;
   line-height: 1.2;
-}
-
-.solar-term-dot {
-  position: absolute;
-  top: 8px;
-  right: 8px;
-  width: 6px;
-  height: 6px;
-  background-color: #D4AF37; /* 淡金色 */
-  border-radius: 50%;
 }
 
 /* 调整节气文本颜色，因为现在有了圆点标记 */
@@ -557,80 +583,6 @@ page[theme="dark"] {
   background-color: rgba(229, 77, 66, 0.1);
   border-radius: 50%;
 }
-
-/* 详情弹窗中的事件标签 */
-.event-tag {
-  display: inline-block;
-  padding: 4rpx 12rpx;
-  margin: 4rpx;
-  border-radius: 8rpx;
-  font-size: 24rpx;
-  color: var(--text-color-inverse);
-  line-height: 1.5;
-}
-
-.event-tag.term-tag {
-  background-color: #008000; /* 绿色 */
-}
-
-.event-tag.lunar-tag {
-  background-color: #E54D42; /* 红色 */
-}
-
-.event-tag.solar-tag {
-  background-color: #0081FF; /* 蓝色 */
-}
-
-.event-tag.major-event-tag {
-  border: 1rpx solid #FFD700; /* 金色边框 */
-}
-
-/* 事件详情 */
-.event-details {
-  margin-top: 20rpx;
-  padding-top: 20rpx;
-  border-top: 1rpx solid var(--border-color);
-}
-
-.event-detail-item {
-  margin-bottom: 20rpx;
-}
-
-.event-detail-title {
-  font-size: 16px;
-  font-weight: bold;
-  color: var(--text-color-primary);
-  margin-bottom: 10rpx;
-}
-
-.event-detail-desc {
-  font-size: 14px;
-  color: var(--text-color-secondary);
-  line-height: 1.6;
-  text-align: justify;
-}
-
-.phenology-info {
-  margin-top: 15rpx;
-  padding: 15rpx;
-  background-color: #f7f7f7;
-  border-radius: 10rpx;
-}
-
-.phenology-title {
-  font-size: 14px;
-  font-weight: bold;
-  color: #555;
-  margin-bottom: 10rpx;
-}
-
-.phenology-item {
-  font-size: 13px;
-  color: #777;
-  line-height: 1.5;
-}
-
-
 
 /* 节气信息 */
 .term-info {
@@ -652,16 +604,6 @@ page[theme="dark"] {
   color: var(--text-color-secondary);
   line-height: 1.6;
   text-align: justify;
-}
-
-.major-holiday-icon {
-  position: absolute;
-  bottom: 5px;
-  left: 50%;
-  transform: translateX(-50%);
-  width: 16px;
-  height: 16px;
-  opacity: 0.8;
 }
 .picker-overlay {
   position: fixed;
@@ -718,9 +660,177 @@ page[theme="dark"] {
   height: 400rpx;
 }
 
+/* 农历三列picker宽度分配 */
+.lunar-picker-view picker-view-column:nth-child(1) {
+  flex: 3;
+}
+.lunar-picker-view picker-view-column:nth-child(2) {
+  flex: 2;
+}
+.lunar-picker-view picker-view-column:nth-child(3) {
+  flex: 2;
+}
+
 .picker-item {
   line-height: 50px;
   text-align: center;
-  font-size: 16px;
+  font-size: 20px;
   color: var(--text-color-primary);
+  font-family: 'Source Han Serif', '思源宋体', serif;
+}
+
+/* ===== 农历模式日历格联动 ===== */
+.lunar-mode-main {
+  font-family: 'Source Han Serif', '思源宋体', serif;
+  font-size: 13px;
+  font-weight: 500;
+  color: var(--text-color-primary);
+  line-height: 1;
+}
+
+/* 农历模式下的公历日期（无节气/节假日时显示） */
+.lunar-mode-solar {
+  font-size: 11px;
+  font-weight: 400;
+  color: var(--text-color-secondary);
+  margin-top: 3px;
+  font-family: -apple-system, sans-serif;
+}
+
+/* 农历模式下的节气/节假日文字 - 复用公历模式样式 */
+/* 确保 .lunar-date 在农历模式下也能正常显示 */
+
+/* 农历模式下的节气圆点 - 位置调整 */
+.day-cell .solar-term-dot {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  width: 6px;
+  height: 6px;
+  background-color: #D4AF37; /* 淡金色 */
+  border-radius: 50%;
+  z-index: 1;
+}
+
+/* 农历模式下的重大节假日图标 - 位置调整 */
+.day-cell .major-holiday-icon {
+  position: absolute;
+  bottom: 5px;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 16px;
+  height: 16px;
+  opacity: 0.8;
+  z-index: 1;
+}
+
+/* ===== 节日/节气详情描述 ===== */
+.event-detail-block {
+  margin-top: 4px;
+}
+.event-detail-name {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-color-accent);
+  margin-bottom: 6px;
+}
+.event-detail-desc {
+  font-size: 13px;
+  color: var(--text-color-secondary);
+  line-height: 1.7;
+  text-align: justify;
+}
+.event-phenology {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-top: 10px;
+}
+.event-phenology .phenology-item {
+  font-size: 12px;
+  color: var(--text-color-accent);
+  background-color: var(--container-bg-secondary);
+  border-radius: 12px;
+  padding: 4px 10px;
+  border: 1px solid var(--border-color);
+}
+
+/* ===== 节气卡片弹窗 ===== */
+.term-card-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background-color: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.term-card {
+  width: 78%;
+  background-color: var(--container-bg-color);
+  border-radius: 20px;
+  padding: 28px 24px 20px;
+  box-sizing: border-box;
+  position: relative;
+}
+.term-card-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 14px;
+}
+.term-card-name {
+  font-size: 20px;
+  font-weight: 700;
+  color: var(--text-color-primary);
+  font-family: 'Source Han Serif', '思源宋体', serif;
+}
+.term-card-close {
+  font-size: 22px;
+  color: var(--text-color-secondary);
+  padding: 4px 8px;
+  line-height: 1;
+}
+.term-card-poem {
+  font-size: 13px;
+  color: var(--text-color-accent);
+  font-family: 'STKaiti', '华文楷体', serif;
+  text-align: center;
+  margin-bottom: 14px;
+  line-height: 1.8;
+  padding: 10px;
+  background-color: var(--container-bg-secondary);
+  border-radius: 10px;
+}
+.term-card-desc {
+  font-size: 13px;
+  color: var(--text-color-secondary);
+  line-height: 1.8;
+  text-align: justify;
+  margin-bottom: 14px;
+}
+.term-card-phenology {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin-bottom: 20px;
+}
+.phenology-row {
+  font-size: 12px;
+  color: var(--text-color-accent);
+  background-color: var(--container-bg-secondary);
+  border-radius: 12px;
+  padding: 4px 10px;
+  border: 1px solid var(--border-color);
+}
+.term-card-btn {
+  text-align: center;
+  font-size: 15px;
+  color: var(--brand-color-red);
+  padding: 10px 0;
+  border-top: 1px solid var(--border-color);
+  font-weight: 500;
 }

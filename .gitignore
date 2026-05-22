@@ -7,3 +7,5 @@ package-lock.json
 yarn.lock
 dist
 unpackage
+debug.log
+__pycache__/

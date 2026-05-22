@@ -1,0 +1,94 @@
+<!-- 纪念日工具 - 列表页 V1.0.2 -->
+<view class="container">
+  <!-- 自定义导航栏 -->
+  <navigation-bar 
+    title="纪念日" 
+    statusBarHeight="{{statusBarHeight}}" 
+    navBarHeight="{{navBarHeight}}"
+    bind:back="goBack"
+  />
+
+  <!-- 内容区域 -->
+  <view class="content" style="padding-top: {{navBarHeight + 20}}px;">
+    <!-- 空状态 -->
+    <view class="empty-state" wx:if="{{isEmpty}}" bindtap="goToCreate">
+      <image class="empty-image" src="/images/empty.png" mode="aspectFit"></image>
+      <text class="empty-text">点击添加你的第一个纪念日</text>
+    </view>
+
+    <!-- 纪念日列表 -->
+    <view class="anniversary-list" wx:else>
+      <view 
+        class="card-wrapper" 
+        wx:for="{{anniversaryList}}" 
+        wx:key="id"
+      >
+        <!-- 卡片主体 -->
+        <view 
+          class="anniversary-card {{item.swipeLeft ? 'swipe-left' : ''}} {{item.isToday ? 'today-card' : ''}}"
+          bindtouchstart="onTouchStart"
+          bindtouchmove="onTouchMove"
+          bindtouchend="onTouchEnd"
+          bindtap="goToDetail"
+          bindlongpress="onCardLongPress"
+          data-id="{{item.id}}"
+        >
+          <!-- 左侧装饰条 -->
+          <view class="card-accent {{item.isToday ? 'accent-today' : ''}}"></view>
+          
+          <!-- 卡片头部 -->
+          <view class="card-header">
+            <!-- 今日标签 -->
+            <view class="today-badge" wx:if="{{item.isToday}}">
+              <text class="badge-text">今日</text>
+            </view>
+          </view>
+          
+          <!-- 卡片主体内容 -->
+          <view class="card-body">
+            <!-- 纪念日名称 -->
+            <view class="card-name">{{item.name}}</view>
+            
+            <!-- 日期信息 -->
+            <view class="card-date-row">
+              <text class="date-icon">📅</text>
+              <text class="card-date">{{item.date}}</text>
+              <text class="calendar-type">{{item.calendarType === 'solar' ? '国历' : '农历'}}</text>
+            </view>
+          </view>
+          
+          <!-- 卡片底部 -->
+          <view class="card-footer">
+            <view class="count-section">
+              <text class="card-count {{item.isToday ? 'today' : ''}}">{{item.countText}}</text>
+            </view>
+            <view class="card-meta">
+              <text class="repeat-badge" wx:if="{{item.repeat}}">
+                <text class="repeat-icon">🔄</text>
+                <text class="repeat-text">每年重复</text>
+              </text>
+            </view>
+          </view>
+        </view>
+        
+        <!-- 左滑操作按钮 -->
+        <view class="swipe-actions">
+          <view class="action-btn edit-btn" bindtap="editAnniversary" data-id="{{item.id}}">
+            <text class="btn-icon">✏️</text>
+            <text class="btn-text">编辑</text>
+          </view>
+          <view class="action-btn delete-btn" bindtap="deleteAnniversary" data-id="{{item.id}}">
+            <text class="btn-icon">🗑️</text>
+            <text class="btn-text">删除</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 新建按钮 -->
+  <view class="add-button" bindtap="goToCreate">
+    <text class="add-icon">+</text>
+    <text class="add-text">新建纪念日</text>
+  </view>
+</view>

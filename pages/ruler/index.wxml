@@ -1,0 +1,46 @@
+<navigation-bar title="尺子" back="{{true}}" color="black" background="#FFF"></navigation-bar>
+
+<view class="container">
+  <!-- Canvas 尺子 -->
+  <canvas 
+    type="2d" 
+    id="rulerCanvas" 
+    class="ruler-canvas"
+    disable-scroll="{{isLocked}}"
+  ></canvas>
+
+  <!-- 控制按钮 -->
+  <view class="controls {{isLocked ? 'locked' : ''}}">
+    <!-- 方向切换 -->
+    <view class="control-btn" bindtap="toggleOrientation">
+      <text class="btn-icon">{{orientation === 'horizontal' ? '↔️' : '↕️'}}</text>
+      <text class="btn-text">{{orientation === 'horizontal' ? '横向' : '纵向'}}</text>
+    </view>
+
+    <!-- 单位切换 -->
+    <view class="control-btn" bindtap="toggleUnit">
+      <text class="btn-icon">📏</text>
+      <text class="btn-text">{{unit === 'cm' ? '厘米' : '英寸'}}</text>
+    </view>
+
+    <!-- 锁定 -->
+    <view class="control-btn {{isLocked ? 'active' : ''}}" bindtap="toggleLock">
+      <text class="btn-icon">{{isLocked ? '🔒' : '🔓'}}</text>
+      <text class="btn-text">{{isLocked ? '已锁定' : '锁定'}}</text>
+    </view>
+  </view>
+
+  <!-- 使用提示 -->
+  <view class="tips" wx:if="{{!isLocked}}">
+    <text class="tip-icon">💡</text>
+    <text class="tip-text">尺子已贴近{{orientation === 'horizontal' ? '顶部' : '右侧'}}边缘，红色虚线为 0 刻度起点</text>
+  </view>
+
+  <!-- 彩蛋 -->
+  <view class="easter-egg {{showEasterEgg ? 'show' : ''}}" wx:if="{{showEasterEgg}}">
+    <view class="easter-egg-content">
+      <text class="easter-egg-emoji">😏</text>
+      <text class="easter-egg-text">{{easterEggText}}</text>
+    </view>
+  </view>
+</view>

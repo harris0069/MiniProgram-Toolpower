@@ -1,0 +1,117 @@
+<navigation-bar title="转盘决策" back="{{true}}" color="black" background="#FFF"></navigation-bar>
+
+<view class="container">
+  <!-- 转盘区域 -->
+  <view class="wheel-section">
+    <view class="wheel-container">
+      <canvas type="2d" id="wheelCanvas" class="wheel-canvas"></canvas>
+      
+      <!-- 转动按钮 -->
+      <view class="spin-button {{isSpinning ? 'spinning' : ''}}" bindtap="startSpin">
+        <text class="spin-text">{{isSpinning ? '转动中...' : '开始转动'}}</text>
+      </view>
+    </view>
+    
+    <!-- 结果显示 -->
+    <view class="result-section" wx:if="{{showResult}}">
+      <view class="result-card">
+        <text class="result-label">🎉 结果是</text>
+        <text class="result-text">{{result}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 选项管理 -->
+  <view class="options-section">
+    <view class="section-header">
+      <text class="section-title">选项设置</text>
+      <view class="header-buttons">
+        <button class="header-btn" bindtap="showTemplates">模板</button>
+        <button class="header-btn" bindtap="resetWheel">重置</button>
+      </view>
+    </view>
+    
+    <view class="options-list">
+      <view class="option-item" wx:for="{{options}}" wx:key="index">
+        <view class="option-color" style="background-color: {{wheelColors[index % wheelColors.length]}}"></view>
+        <text class="option-text" bindtap="editOption" data-index="{{index}}">{{item}}</text>
+        <view class="option-actions">
+          <text class="action-btn edit-btn" bindtap="editOption" data-index="{{index}}">✏️</text>
+          <text class="action-btn delete-btn" bindtap="deleteOption" data-index="{{index}}" wx:if="{{options.length > 2}}">🗑️</text>
+        </view>
+      </view>
+      
+      <!-- 添加选项按钮 -->
+      <view class="add-option-btn" bindtap="addOption" wx:if="{{options.length < 8}}">
+        <text class="add-icon">+</text>
+        <text class="add-text">添加选项</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 使用说明 -->
+  <view class="tips-section">
+    <view class="tips-header">
+      <text class="tips-icon">💡</text>
+      <text class="tips-title">使用说明</text>
+    </view>
+    <view class="tips-content">
+      <text class="tip-item">• 点击选项可以编辑文字内容</text>
+      <text class="tip-item">• 支持2-8个选项，颜色自动分配</text>
+      <text class="tip-item">• 可以使用预设模板快速设置</text>
+      <text class="tip-item">• 转盘会随机转动3-6圈后停止</text>
+    </view>
+  </view>
+</view>
+
+<!-- 编辑选项弹窗 -->
+<view class="modal-overlay" wx:if="{{isEditing}}" bindtap="cancelEdit">
+  <view class="modal-content" catchtap="">
+    <view class="modal-header">
+      <text class="modal-title">编辑选项</text>
+    </view>
+    
+    <view class="modal-body">
+      <input 
+        class="edit-input" 
+        placeholder="请输入选项内容"
+        value="{{editingText}}"
+        bindinput="onTextInput"
+        focus="{{isEditing}}"
+        maxlength="10"
+      />
+    </view>
+    
+    <view class="modal-footer">
+      <button class="modal-btn cancel-btn" bindtap="cancelEdit">取消</button>
+      <button class="modal-btn confirm-btn" bindtap="confirmEdit">确定</button>
+    </view>
+  </view>
+</view>
+
+<!-- 模板选择弹窗 -->
+<view class="modal-overlay" wx:if="{{showTemplates}}" bindtap="hideTemplates">
+  <view class="modal-content template-modal" catchtap="">
+    <view class="modal-header">
+      <text class="modal-title">选择模板</text>
+      <text class="modal-close" bindtap="hideTemplates">×</text>
+    </view>
+    
+    <view class="modal-body">
+      <view class="template-list">
+        <view 
+          class="template-item"
+          wx:for="{{templates}}" 
+          wx:key="name"
+          bindtap="useTemplate"
+          data-index="{{index}}"
+        >
+          <text class="template-name">{{item.name}}</text>
+          <view class="template-options">
+            <text class="template-option" wx:for="{{item.options}}" wx:key="*this">{{item}}</text>
+          </view>
+        </view>
+      </view>
+    </view>
+  </view>
+</view>

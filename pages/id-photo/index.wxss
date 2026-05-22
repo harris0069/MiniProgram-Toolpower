@@ -91,6 +91,43 @@ page {
   background: rgba(255,255,255,0.3);
 }
 
+/* AI 抠图提示 */
+.ai-tip {
+  position: absolute;
+  top: 20rpx;
+  left: 20rpx;
+  background: rgba(26, 95, 74, 0.9);
+  color: #fff;
+  padding: 8rpx 20rpx;
+  border-radius: 30rpx;
+  font-size: 22rpx;
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+  z-index: 5;
+  box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.15);
+  animation: fadeIn 0.3s ease;
+}
+
+.tip-icon {
+  font-size: 24rpx;
+}
+
+.tip-text {
+  font-size: 22rpx;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(-10rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
 .empty-state {
   position: absolute;
   top: 0;
@@ -244,10 +281,10 @@ page {
 .btn-group {
   display: flex;
   gap: 20rpx;
+  flex-wrap: wrap;
 }
 
 .btn {
-  flex: 1;
   height: 88rpx;
   line-height: 88rpx;
   border-radius: var(--radius-md);
@@ -255,7 +292,16 @@ page {
   border: none;
 }
 
+.btn-group .btn.secondary:first-child {
+  flex: 0 0 calc(33.33% - 14rpx);
+}
+
+.btn-group .btn.secondary:nth-child(2) {
+  flex: 0 0 calc(33.33% - 14rpx);
+}
+
 .btn.primary {
+  flex: 0 0 calc(33.33% - 14rpx);
   background: var(--primary-color);
   color: #fff;
   box-shadow: 0 4rpx 12rpx rgba(26, 95, 74, 0.3);

@@ -149,7 +149,7 @@ page {
 
 .submit {
   flex: 1;
-  background: linear-gradient(135deg, var(--secondary-color), #C8A562);
+  background: #D4B98C;
   color: #fff;
   box-shadow: 0 8rpx 20rpx rgba(212, 185, 140, 0.4);
 }
@@ -266,7 +266,7 @@ page {
   background: rgba(212, 185, 140, 0.1);
   padding: 24rpx;
   border-radius: 16rpx;
-  margin-bottom: 40rpx;
+  margin-bottom: 20rpx;
 }
 
 .advice-title {
@@ -285,8 +285,34 @@ page {
 .advice-content {
   font-size: 13px;
   color: var(--text-main);
+  line-height: 1.8;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+
+/* 免责声明 */
+.disclaimer {
+  background: #FFF9E6;
+  padding: 20rpx 24rpx;
+  border-radius: 12rpx;
+  display: flex;
+  align-items: flex-start;
+  gap: 12rpx;
+  margin-bottom: 30rpx;
+  border-left: 4rpx solid #FFC107;
+}
+
+.disclaimer-icon {
+  font-size: 16px;
+  flex-shrink: 0;
+  margin-top: 2rpx;
+}
+
+.disclaimer-text {
+  font-size: 12px;
+  color: #F57C00;
   line-height: 1.6;
-  text-align: justify;
+  flex: 1;
 }
 
 /* 操作按钮行 */

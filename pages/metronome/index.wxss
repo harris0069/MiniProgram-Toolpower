@@ -441,6 +441,34 @@ page {
   color: var(--text-main);
 }
 
+/* 震动模式说明 */
+.vibration-info {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.vibration-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 12px;
+  background: var(--bg-color);
+  border-radius: 8px;
+  border: 1px solid var(--border-color);
+}
+
+.vibration-label {
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text-main);
+}
+
+.vibration-desc {
+  font-size: 12px;
+  color: var(--text-sub);
+}
+
 /* 开关行 */
 .switch-row {
   display: flex;

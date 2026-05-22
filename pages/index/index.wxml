@@ -1,8 +1,74 @@
 <view class="container">
-  <view class="tool-grid">
-    <view class="tool-item" wx:for="{{tools}}" wx:key="page" data-page="{{item.page}}" bindtap="navigateToTool">
-      <image class="tool-icon" src="{{item.icon}}" mode="aspectFit"/>
-      <text class="tool-name">{{item.name}}</text>
+  <!-- 状态栏占位 -->
+  <view class="status-bar" style="height: {{statusBarHeight}}px;"></view>
+  
+  <!-- 标题区域 -->
+  <view class="header">
+    <view class="title-wrapper">
+      <text class="main-title">啊对对工具箱</text>
+      <text class="star-emoji">🌟</text>
+    </view>
+    <text class="subtitle">🥳 有点实用的小工具</text>
+  </view>
+
+  <!-- 常用工具专区 -->
+  <view class="favorite-section" wx:if="{{favoriteTools.length > 0}}">
+    <view class="section-header">
+      <view class="header-left">
+        <text class="section-icon">⭐</text>
+        <text class="section-title">常用工具</text>
+      </view>
+      <view class="header-right">
+        <text class="tip-text" wx:if="{{isManaging}}">点击直接移除</text>
+        <view class="manage-btn" bindtap="toggleManageMode">
+          <text class="manage-text">{{isManaging ? '完成' : '管理'}}</text>
+        </view>
+      </view>
+    </view>
+    
+    <view class="favorite-tools">
+      <view class="favorite-item {{isManaging ? 'managing' : ''}}" 
+            wx:for="{{favoriteTools}}" 
+            wx:key="id" 
+            data-id="{{item.id}}"
+            data-page="{{item.page}}" 
+            bindtap="onFavoriteClick"
+            bindlongpress="onFavoriteLongPress">
+        <view class="delete-badge" wx:if="{{isManaging}}">×</view>
+        <view class="icon-wrapper-small" style="background: {{item.bgColor}}">
+          <text class="tool-emoji-small">{{item.emoji}}</text>
+        </view>
+        <text class="tool-name-inline">{{item.name}}</text>
+      </view>
+    </view>
+  </view>
+
+  <!-- 分割线 -->
+  <view class="divider" wx:if="{{favoriteTools.length > 0}}"></view>
+
+  <!-- 全部工具区域 -->
+  <view class="all-tools-section">
+    <view class="section-header">
+      <view class="header-left">
+        <text class="section-icon">🔧</text>
+        <text class="section-title">全部工具</text>
+      </view>
+      <text class="tip-text">长按工具可添加到常用</text>
+    </view>
+    <view class="tool-grid">
+      <view class="tool-item" 
+            wx:for="{{allTools}}" 
+            wx:key="id" 
+            data-id="{{item.id}}"
+            data-page="{{item.page}}" 
+            bindtap="navigateToTool"
+            bindlongpress="onToolLongPress"
+            style="animation-delay: {{index * 0.05}}s">
+        <view class="icon-wrapper" style="background: {{item.bgColor}}">
+          <text class="tool-emoji">{{item.emoji}}</text>
+        </view>
+        <text class="tool-name">{{item.name}}</text>
+      </view>
     </view>
   </view>
 </view>

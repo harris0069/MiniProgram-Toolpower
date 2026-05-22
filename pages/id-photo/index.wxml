@@ -30,6 +30,12 @@
         <view class="guide-center"></view>
       </view>
 
+      <!-- AI 抠图状态提示 -->
+      <view class="ai-tip" wx:if="{{tempImagePath && isTransparentBg}}">
+        <text class="tip-icon">✨</text>
+        <text class="tip-text">已使用 AI 抠图</text>
+      </view>
+
       <!-- 空状态 -->
       <view class="empty-state" wx:if="{{!tempImagePath}}" bindtap="chooseImage">
         <view class="icon-camera">📷</view>
@@ -87,6 +93,7 @@
     <!-- 底部按钮 -->
     <view class="btn-group">
       <button class="btn secondary" bindtap="chooseImage" wx:if="{{tempImagePath}}">换一张</button>
+      <button class="btn secondary" bindtap="saveToLocal" disabled="{{!tempImagePath}}">保存到本地</button>
       <button class="btn primary" bindtap="savePhoto" disabled="{{!tempImagePath}}">生成保存</button>
     </view>
   </view>

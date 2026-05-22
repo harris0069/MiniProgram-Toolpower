@@ -2,29 +2,31 @@
   "pages": [
     "pages/index/index",
     "pages/image-compress/index",
+    "pages/watermark/index",
     "pages/metronome/index",
     "pages/id-photo/index",
     "pages/bmi/index",
-    "pages/electronic-seal/index",
-    "pages/calendar/index"
+    "pages/electronic-seal/electronic-seal",
+    "pages/calendar/index",
+    "pages/ruler/index",
+    "pages/anniversary/index",
+    "pages/anniversary/create",
+    "pages/anniversary/detail",
+    "pages/wheel-decision/index"
   ],
   "window": {
     "navigationBarTextStyle": "black",
     "navigationStyle": "custom"
   },
-  "style": "v2",
-  "renderer": "skyline",
-  "rendererOptions": {
-    "skyline": {
-      "defaultDisplayBlock": true,
-      "defaultContentBox": true,
-      "tagNameStyleIsolation": "legacy",
-      "disableABTest": true,
-      "sdkVersionBegin": "3.0.0",
-      "sdkVersionEnd": "15.255.255"
+  "permission": {
+    "scope.writePhotosAlbum": {
+      "desc": "需要保存压缩后的图片到相册"
+    },
+    "scope.record": {
+      "desc": "节拍器需要音频权限以正常播放节拍声音"
     }
   },
-  "componentFramework": "glass-easel",
+  "style": "v2",
   "sitemapLocation": "sitemap.json",
   "lazyCodeLoading": "requiredComponents"
 }

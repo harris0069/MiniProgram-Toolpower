@@ -96,6 +96,25 @@
                 bindtap="setSoundType" data-id="{{item.id}}">{{item.name}}</view>
         </view>
       </view>
+      
+      <!-- 震动模式说明 -->
+      <view class="setting-section" wx:if="{{useFallbackAudio}}">
+        <view class="section-title">震动节拍模式</view>
+        <view class="vibration-info">
+          <view class="vibration-item">
+            <text class="vibration-label">🔴 强拍</text>
+            <text class="vibration-desc">长震动 + 短震动</text>
+          </view>
+          <view class="vibration-item">
+            <text class="vibration-label">🟡 次强拍</text>
+            <text class="vibration-desc">中等震动</text>
+          </view>
+          <view class="vibration-item">
+            <text class="vibration-label">⚪ 弱拍</text>
+            <text class="vibration-desc">轻震动</text>
+          </view>
+        </view>
+      </view>
 
       <!-- 视觉反馈 -->
       <view class="setting-section">

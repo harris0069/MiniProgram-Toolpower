@@ -14,43 +14,56 @@
   <view class="top-bar" style="padding-top: {{statusBarHeight}}px;">
     <view class="top-bar-content" style="padding-right: {{menuRightPadding}}px;">
       <view class="action-btn back-btn" bindtap="navigateBack">
-        <image class="arrow-icon" src="data:image/svg+xml;utf8,<svg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'><path d='M15 7l-5 5 5 5' stroke='%234A5568' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>" mode="aspectFit"></image>
+        <text class="back-icon">‹</text>
       </view>
       <view class="current-date" bindtap="showYearMonthPicker">
         <view class="current-year">{{year}}年</view>
         <view class="current-month">{{month}}月</view>
       </view>
-      <view class="mode-switch-btn" bindtap="switchCalendarMode">{{ calendarMode === 'solar' ? '切换农历' : '切换公历' }}</view>
+      <view class="mode-switch-btn {{calendarMode === 'lunar' ? 'lunar-active' : ''}}" bindtap="switchCalendarMode">{{ calendarMode === 'solar' ? '农历' : '公历' }}</view>
       <view class="action-btn theme-switch-btn" bindtap="switchTheme">
         <image class="theme-icon" src="data:image/svg+xml;utf8,<svg width='24' height='24' viewBox='0 0 24 24' fill='none' xmlns='http://www.w3.org/2000/svg'><path d='M12 16C14.2091 16 16 14.2091 16 12C16 9.79086 14.2091 8 12 8C9.79086 8 8 9.79086 8 12C8 14.2091 9.79086 16 12 16Z' stroke='%234A5568' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/><path d='M12 2V4' stroke='%234A5568' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/><path d='M12 20V22' stroke='%234A5568' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/><path d='M4.92969 4.92969L6.34969 6.34969' stroke='%234A5568' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/><path d='M17.6504 17.6504L19.0704 19.0704' stroke='%234A5568' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/><path d='M2 12H4' stroke='%234A5568' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/><path d='M20 12H22' stroke='%234A5568' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/><path d='M4.92969 19.0704L6.34969 17.6504' stroke='%234A5568' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/><path d='M17.6504 6.34969L19.0704 4.92969' stroke='%234A5568' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'/></svg>" mode="aspectFit"></image>
       </view>
     </view>
   </view>
 
-  <!-- 农历选择器 -->
-  <view class="lunar-picker-container" wx:if="{{calendarMode === 'lunar'}}">
-    <picker mode="multiSelector" bindchange="onLunarDateChange" value="{{lunarPickerValue}}" range="{{lunarPickerRange}}">
-      <view class="picker-display">
-        农历 {{lunarPickerRange[0][lunarPickerValue[0]]}} {{lunarPickerRange[1][lunarPickerValue[1]]}} {{lunarPickerRange[2][lunarPickerValue[2]]}}
-      </view>
-    </picker>
-    <button class="confirm-lunar-btn" bindtap="confirmLunarSelection">确定</button>
+  <!-- 农历选择器（点击触发自定义弹窗） -->
+  <view class="lunar-picker-container" wx:if="{{calendarMode === 'lunar'}}" bindtap="showLunarPicker">
+    <view class="picker-display">
+      {{lunarPickerRange[0][lunarPickerValue[0]]}} {{lunarPickerRange[1][lunarPickerValue[1]]}} {{lunarPickerRange[2][lunarPickerValue[2]]}}
+    </view>
   </view>
 
-  <!-- 公历日历 -->
-  <block wx:if="{{calendarMode === 'solar'}}">
-    <!-- 星期标题 -->
-    <view class="week-header">
-      <view wx:for="{{weekdays}}" wx:key="*this" class="weekday">{{item}}</view>
-    </view>
+  <!-- 日历主体（公历/农历模式均显示） -->
+  <!-- 星期标题 -->
+  <view class="week-header">
+    <view wx:for="{{weekdays}}" wx:key="*this" class="weekday">{{item}}</view>
+  </view>
 
-    <!-- 日历主体 -->
-    <swiper class="calendar-swiper" current="{{current_swiper}}" bindchange="onSwiperChange" circular>
-      <swiper-item wx:for="{{calendar_list}}" wx:key="index">
-        <view class="calendar-grid">
-          <view wx:for="{{item.days}}" wx:key="key" class="day-cell {{item.isCurrentMonth ? '' : 'disabled'}} {{item.isToday ? 'today' : ''}} {{item.isSelected ? 'selected' : ''}} {{item.isMajorHoliday ? 'major-holiday' : ''}}" hover-class="day-cell-hover" hover-stay-time="100" bindtap="onDateTap" data-date="{{item}}">
+  <swiper class="calendar-swiper" current="{{current_swiper}}" bindchange="onSwiperChange" circular>
+    <swiper-item wx:for="{{calendar_list}}" wx:key="index">
+      <view class="calendar-grid">
+        <view wx:for="{{item.days}}" wx:key="key" class="day-cell {{item.isCurrentMonth ? '' : 'disabled'}} {{item.isToday ? 'today' : ''}} {{item.isSelected ? 'selected' : ''}} {{item.isMajorHoliday ? 'major-holiday' : ''}}" hover-class="day-cell-hover" hover-stay-time="100" bindtap="onDateTap" data-date="{{item}}">
+          <!-- 农历模式：大字农历日，小字节气/节假日/公历日 -->
+          <block wx:if="{{calendarMode === 'lunar'}}">
+            <view class="solar-date lunar-mode-main">{{item.lunarDay || item.day}}</view>
+            <!-- 优先显示节气或节假日，否则显示公历日期 -->
+            <block wx:if="{{item.gridDisplayType === 'term'}}">
+              <view class="lunar-date solar-term">{{item.lunar}}</view>
+              <view class="solar-term-dot"></view>
+            </block>
+            <block wx:elif="{{item.gridDisplayType === 'solar' || item.isMajorHoliday}}">
+              <view class="lunar-date lunar">{{item.lunar}}</view>
+            </block>
+            <block wx:else>
+              <view class="lunar-mode-solar">{{item.day}}</view>
+            </block>
+            <!-- 重大节假日图标 -->
+            <image class="major-holiday-icon" wx:if="{{item.isMajorHoliday}}" src="data:image/svg+xml;utf8,<svg width='16' height='16' viewBox='0 0 1024 1024' xmlns='http://www.w3.org/2000/svg'><path fill='%23D4AF37' d='M704 384a192 192 0 1 0-384 0c0 101.248 78.752 184.32 179.2 191.232A128 128 0 0 0 384 704h128a128 128 0 0 0 115.2-78.784C713.248 616.32 792 533.248 792 432a128 128 0 0 0-88-120.768zM640 768H256a128 128 0 0 1-128-128c0-65.792 49.6-120.064 113.152-126.976A192 192 0 0 0 128 640a192 192 0 0 0 192 192h320a192 192 0 1 0 0-384H512a192 192 0 0 0-192-192h-64a192 192 0 0 0-192 192v64a192 192 0 0 0 192 192h512a128 128 0 0 1 0 256z'/></svg>"></image>
+          </block>
+          <!-- 公历模式：大字公历日，小字农历/节气 -->
+          <block wx:else>
             <view class="solar-date">{{item.day}}</view>
-            <!-- 根据类型显示不同样式 (已修复) -->
             <block wx:if="{{item.gridDisplayType === 'lunar' || item.gridDisplayType === 'solar'}}">
               <view class="lunar-date lunar">{{item.lunar}}</view>
             </block>
@@ -61,10 +74,11 @@
             <block wx:if="{{item.isMajorHoliday}}">
               <image class="major-holiday-icon" src="data:image/svg+xml;utf8,<svg width='16' height='16' viewBox='0 0 1024 1024' xmlns='http://www.w3.org/2000/svg'><path fill='%23D4AF37' d='M704 384a192 192 0 1 0-384 0c0 101.248 78.752 184.32 179.2 191.232A128 128 0 0 0 384 704h128a128 128 0 0 0 115.2-78.784C713.248 616.32 792 533.248 792 432a128 128 0 0 0-88-120.768zM640 768H256a128 128 0 0 1-128-128c0-65.792 49.6-120.064 113.152-126.976A192 192 0 0 0 128 640a192 192 0 0 0 192 192h320a192 192 0 1 0 0-384H512a192 192 0 0 0-192-192h-64a192 192 0 0 0-192 192v64a192 192 0 0 0 192 192h512a128 128 0 0 1 0 256z'/></svg>"></image>
             </block>
-          </view>
+          </block>
         </view>
-      </swiper-item>
-    </swiper>
+      </view>
+    </swiper-item>
+  </swiper>
 
     <!-- 详情展示区 (替换卷轴弹窗) -->
     <view class="date-detail-view" wx:if="{{selectedDateDetail}}">
@@ -99,21 +113,30 @@
         <view class="term-poem">{{selectedDateDetail.termInfo.poem}}</view>
         <view class="term-desc">{{selectedDateDetail.termInfo.desc}}</view>
       </view>
+
+      <!-- 节日/节气详情描述 -->
+      <view class="event-detail-block" wx:if="{{selectedDateDetail.eventDetail && selectedDateDetail.eventDetail.description}}">
+        <view class="detail-divider"></view>
+        <view class="event-detail-name">{{selectedDateDetail.eventDetail.name}}</view>
+        <view class="event-detail-desc">{{selectedDateDetail.eventDetail.description}}</view>
+        <view class="event-phenology" wx:if="{{selectedDateDetail.eventDetail.phenology && selectedDateDetail.eventDetail.phenology.length > 0}}">
+          <view class="phenology-item" wx:for="{{selectedDateDetail.eventDetail.phenology}}" wx:key="*this">{{item}}</view>
+        </view>
+      </view>
     </view>
-  </block>
 
   <!-- 浮动及弹窗元素 -->
   <view class="back-today-btn" wx:if="{{isTodayButtonVisible}}" bindtap="backToToday">今</view>
 
   <!-- 年月快速选择器 -->
-  <view class="picker-overlay" wx:if="{{isYearMonthPickerVisible}}" bindtap="hideYearMonthPicker">
+  <view class="picker-overlay" theme="{{theme}}" wx:if="{{isYearMonthPickerVisible}}" bindtap="hideYearMonthPicker">
     <view class="ym-picker-content" catchtap="doNothing">
       <view class="ym-picker-header">
         <view class="ym-picker-btn cancel" bindtap="hideYearMonthPicker">取消</view>
         <view class="ym-picker-title">选择年月</view>
         <view class="ym-picker-btn confirm" bindtap="confirmYearMonthChange">确定</view>
       </view>
-      <picker-view indicator-style="height: 50px;" class="ym-picker-view" value="{{yearMonthPickerValue}}" bindchange="onYearMonthPickerChange">
+      <picker-view indicator-style="height: 50px; font-size: 20px;" class="ym-picker-view" value="{{yearMonthPickerValue}}" bindchange="onYearMonthPickerChange">
         <picker-view-column>
           <view wx:for="{{yearMonthPickerRange[0]}}" wx:key="*this" class="picker-item">{{item}}</view>
         </picker-view-column>
@@ -124,4 +147,42 @@
     </view>
   </view>
 </block>
+</view>
+
+<!-- 农历自定义picker弹窗 -->
+<view class="picker-overlay" theme="{{theme}}" wx:if="{{isLunarPickerVisible}}" bindtap="hideLunarPicker">
+  <view class="ym-picker-content" catchtap="doNothing">
+    <view class="ym-picker-header">
+      <view class="ym-picker-btn cancel" bindtap="hideLunarPicker">取消</view>
+      <view class="ym-picker-title">选择农历日期</view>
+      <view class="ym-picker-btn confirm" bindtap="confirmLunarPicker">确定</view>
+    </view>
+    <picker-view indicator-style="height: 50px;" class="ym-picker-view lunar-picker-view" value="{{tempLunarPickerValue}}" bindchange="onLunarPickerChange">
+      <picker-view-column>
+        <view wx:for="{{lunarPickerRange[0]}}" wx:key="*this" class="picker-item">{{item}}</view>
+      </picker-view-column>
+      <picker-view-column>
+        <view wx:for="{{lunarPickerRange[1]}}" wx:key="*this" class="picker-item">{{item}}</view>
+      </picker-view-column>
+      <picker-view-column>
+        <view wx:for="{{lunarPickerRange[2]}}" wx:key="*this" class="picker-item">{{item}}</view>
+      </picker-view-column>
+    </picker-view>
+  </view>
+</view>
+
+<!-- 节气卡片弹窗 -->
+<view class="term-card-overlay" theme="{{theme}}" wx:if="{{showTermCard}}" bindtap="hideTermCard">
+  <view class="term-card" catchtap="doNothing">
+    <view class="term-card-header">
+      <text class="term-card-name">今日{{termCardInfo.name}}</text>
+      <view class="term-card-close" bindtap="hideTermCard">×</view>
+    </view>
+    <view class="term-card-poem" wx:if="{{termCardInfo.poem}}">{{termCardInfo.poem}}</view>
+    <view class="term-card-desc">{{termCardInfo.description}}</view>
+    <view class="term-card-phenology" wx:if="{{termCardInfo.phenology && termCardInfo.phenology.length > 0}}">
+      <view class="phenology-row" wx:for="{{termCardInfo.phenology}}" wx:key="*this">{{item}}</view>
+    </view>
+    <view class="term-card-btn" bindtap="hideTermCard">知道了</view>
+  </view>
 </view>

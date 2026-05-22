@@ -1,0 +1,57 @@
+<!-- 纪念日工具 - 详情页 V1.0.2 -->
+<view class="container">
+  <!-- 自定义导航栏 -->
+  <navigation-bar 
+    title="纪念日详情" 
+    statusBarHeight="{{statusBarHeight}}" 
+    navBarHeight="{{navBarHeight}}"
+    bind:back="goBack"
+  />
+
+  <!-- 内容区域 -->
+  <view class="content" style="padding-top: {{navBarHeight + 20}}px;" wx:if="{{anniversary}}">
+    <!-- 顶部区域 -->
+    <view class="top-section">
+      <view class="anniversary-name">{{anniversary.name}}</view>
+      <view class="category-tag">
+        <text class="category-icon">🏠</text>
+        <text class="category-text">生活</text>
+      </view>
+    </view>
+
+    <!-- 核心区域 -->
+    <view class="core-section" style="background: {{bgColor}};">
+      <view class="count-number">{{diffDays}}</view>
+      <view class="anniversary-year" wx:if="{{showAnniversary}}">第{{anniversaryYear}}周年</view>
+      <view class="count-text">{{countText}}</view>
+      <view class="divider"></view>
+      <view class="date-label">日期</view>
+      <view class="date-value">{{anniversary.date}}</view>
+      <view class="calendar-type">（{{anniversary.calendarType === 'solar' ? '国历' : '农历'}}）</view>
+      
+      <!-- 重复标注 -->
+      <view class="repeat-tag" wx:if="{{anniversary.repeat}}">
+        <text class="repeat-icon">🔄</text>
+        <text class="repeat-text">每年重复</text>
+      </view>
+      
+      <!-- 备注 -->
+      <view class="remark-section" wx:if="{{anniversary.remark}}">
+        <view class="remark-label">备注</view>
+        <view class="remark-text">{{anniversary.remark}}</view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 操作按钮 -->
+  <view class="button-wrapper">
+    <button class="action-button edit-button" bindtap="editAnniversary">
+      <text class="button-icon">✏️</text>
+      <text class="button-text">编辑</text>
+    </button>
+    <button class="action-button delete-button" bindtap="deleteAnniversary">
+      <text class="button-icon">🗑️</text>
+      <text class="button-text">删除</text>
+    </button>
+  </view>
+</view>

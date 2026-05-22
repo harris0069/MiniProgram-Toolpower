@@ -1,0 +1,345 @@
+/* 纪念日工具 - 列表页 V1.0.2 优化版 */
+.container {
+  width: 100%;
+  min-height: 100vh;
+  background: linear-gradient(135deg, #FFF5F8 0%, #FFE8F0 50%, #FFF0F7 100%);
+}
+
+.content {
+  width: 100%;
+  min-height: calc(100vh - 140rpx);
+  padding: 0 24rpx 140rpx 24rpx;
+  box-sizing: border-box;
+}
+
+/* 空状态 */
+.empty-state {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding-top: 180rpx;
+  animation: fadeIn 0.6s ease;
+}
+
+@keyframes fadeIn {
+  from {
+    opacity: 0;
+    transform: translateY(20rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.empty-image {
+  width: 280rpx;
+  height: 280rpx;
+  opacity: 0.5;
+  margin-bottom: 32rpx;
+}
+
+.empty-text {
+  font-size: 28rpx;
+  color: #999;
+  text-align: center;
+  line-height: 1.6;
+}
+
+/* 纪念日列表 */
+.anniversary-list {
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
+  animation: slideUp 0.5s ease;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translateY(30rpx);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* 卡片容器（支持左滑） */
+.card-wrapper {
+  position: relative;
+  width: 100%;
+  height: 220rpx;
+  overflow: hidden;
+  border-radius: 20rpx;
+}
+
+/* 卡片主体 */
+.anniversary-card {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 100%;
+  height: 100%;
+  background: #FFFFFF;
+  border-radius: 20rpx;
+  padding: 24rpx;
+  box-shadow: 0 2rpx 16rpx rgba(255, 107, 157, 0.08);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 2;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+.anniversary-card.today-card {
+  background: linear-gradient(135deg, #FFF5F5 0%, #FFFFFF 100%);
+  box-shadow: 0 4rpx 20rpx rgba(255, 107, 107, 0.12);
+}
+
+.anniversary-card.swipe-left {
+  transform: translateX(-240rpx);
+}
+
+.anniversary-card:active {
+  transform: scale(0.98);
+  box-shadow: 0 1rpx 8rpx rgba(255, 107, 157, 0.12);
+}
+
+.anniversary-card.swipe-left:active {
+  transform: translateX(-240rpx) scale(0.98);
+}
+
+/* 左侧装饰条 */
+.card-accent {
+  position: absolute;
+  left: 0;
+  top: 0;
+  width: 6rpx;
+  height: 100%;
+  background: linear-gradient(180deg, #FF6B9D 0%, #FF8FB3 100%);
+  border-radius: 20rpx 0 0 20rpx;
+}
+
+.card-accent.accent-today {
+  background: linear-gradient(180deg, #FF6B6B 0%, #FF8787 100%);
+  width: 8rpx;
+}
+
+/* 卡片头部 */
+.card-header {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  margin-bottom: 16rpx;
+  padding-left: 12rpx;
+  min-height: 32rpx;
+}
+
+/* 今日标签 */
+.today-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 6rpx 14rpx;
+  background: linear-gradient(135deg, #FF6B6B 0%, #FF8787 100%);
+  border-radius: 16rpx;
+  box-shadow: 0 2rpx 8rpx rgba(255, 107, 107, 0.25);
+}
+
+.badge-text {
+  font-size: 22rpx;
+  color: #FFFFFF;
+  font-weight: 600;
+  letter-spacing: 0.5rpx;
+}
+
+/* 卡片主体内容 */
+.card-body {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10rpx;
+  padding-left: 12rpx;
+}
+
+.card-name {
+  font-size: 34rpx;
+  font-weight: 600;
+  color: #1a1a1a;
+  line-height: 1.4;
+  word-break: break-all;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  letter-spacing: 0.5rpx;
+}
+
+/* 日期信息行 */
+.card-date-row {
+  display: flex;
+  align-items: center;
+  gap: 8rpx;
+}
+
+.date-icon {
+  font-size: 22rpx;
+  line-height: 1;
+  opacity: 0.7;
+}
+
+.card-date {
+  font-size: 24rpx;
+  color: #666;
+  line-height: 1.4;
+}
+
+.calendar-type {
+  font-size: 20rpx;
+  color: #999;
+  padding: 2rpx 10rpx;
+  background: rgba(0, 0, 0, 0.03);
+  border-radius: 8rpx;
+  line-height: 1.4;
+}
+
+/* 卡片底部 */
+.card-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding-left: 12rpx;
+  padding-top: 8rpx;
+  border-top: 1rpx solid rgba(0, 0, 0, 0.04);
+}
+
+.count-section {
+  display: flex;
+  align-items: center;
+}
+
+.card-count {
+  font-size: 30rpx;
+  font-weight: 700;
+  color: #FF6B9D;
+  letter-spacing: 0.5rpx;
+}
+
+.card-count.today {
+  color: #FF6B6B;
+  font-size: 32rpx;
+}
+
+.card-meta {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.repeat-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4rpx;
+  padding: 4rpx 10rpx;
+  background: linear-gradient(135deg, rgba(255, 107, 157, 0.08) 0%, rgba(255, 143, 179, 0.08) 100%);
+  border-radius: 12rpx;
+  border: 1rpx solid rgba(255, 107, 157, 0.15);
+}
+
+.repeat-icon {
+  font-size: 20rpx;
+  line-height: 1;
+}
+
+.repeat-text {
+  font-size: 20rpx;
+  color: #FF6B9D;
+  font-weight: 500;
+}
+
+/* 左滑操作按钮 */
+.swipe-actions {
+  position: absolute;
+  right: 0;
+  top: 0;
+  height: 100%;
+  display: flex;
+  z-index: 1;
+}
+
+.action-btn {
+  width: 120rpx;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 8rpx;
+  transition: all 0.2s ease;
+}
+
+.action-btn:active {
+  opacity: 0.8;
+}
+
+.edit-btn {
+  background: linear-gradient(135deg, #95A5A6 0%, #7F8C8D 100%);
+}
+
+.delete-btn {
+  background: linear-gradient(135deg, #E74C3C 0%, #C0392B 100%);
+  border-radius: 0 20rpx 20rpx 0;
+}
+
+.btn-icon {
+  font-size: 40rpx;
+  line-height: 1;
+  filter: drop-shadow(0 2rpx 4rpx rgba(0, 0, 0, 0.1));
+}
+
+.btn-text {
+  font-size: 24rpx;
+  color: #FFFFFF;
+  font-weight: 500;
+  letter-spacing: 0.5rpx;
+}
+
+/* 新建按钮 */
+.add-button {
+  position: fixed;
+  bottom: 40rpx;
+  left: 24rpx;
+  right: 24rpx;
+  height: 96rpx;
+  background: linear-gradient(135deg, #FF6B9D 0%, #FF8FB3 100%);
+  border-radius: 48rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  box-shadow: 0 8rpx 32rpx rgba(255, 107, 157, 0.35);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+  z-index: 10;
+}
+
+.add-button:active {
+  transform: scale(0.96);
+  box-shadow: 0 4rpx 16rpx rgba(255, 107, 157, 0.4);
+}
+
+.add-icon {
+  font-size: 44rpx;
+  color: #FFFFFF;
+  font-weight: 300;
+  line-height: 1;
+}
+
+.add-text {
+  font-size: 30rpx;
+  color: #FFFFFF;
+  font-weight: 600;
+  letter-spacing: 1rpx;
+}
