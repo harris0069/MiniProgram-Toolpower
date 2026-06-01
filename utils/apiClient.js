@@ -2,7 +2,7 @@
  * API客户端 - 简化版，适配实际数据库结构
  */
 
-const API_BASE_URL = 'https://yourdomain.com'; // 替换为你的实际域名
+const API_BASE_URL = 'https://xcx.huangyiling.top';
 
 class ApiClient {
   
@@ -182,6 +182,46 @@ class ApiClient {
     }
   }
   
+  /**
+   * 查询当日剩余使用次数
+   */
+  static async checkUsage(openid) {
+    return await this.request('/api/check_usage.php', {
+      method: 'POST',
+      data: { openid },
+    });
+  }
+
+  /**
+   * 兑换码兑换
+   */
+  static async redeemCode(openid, code) {
+    return await this.request('/api/redeem.php', {
+      method: 'POST',
+      data: { openid, code },
+    });
+  }
+
+  /**
+   * 查询链接解析当日剩余使用次数
+   */
+  static async checkLinkUsage(openid) {
+    return await this.request('/api/check_usage.php', {
+      method: 'POST',
+      data: { openid, tool: 'link_parse' },
+    });
+  }
+
+  /**
+   * 链接解析兑换码
+   */
+  static async redeemLinkCode(openid, code) {
+    return await this.request('/api/redeem.php', {
+      method: 'POST',
+      data: { openid, code, tool: 'link_parse' },
+    });
+  }
+
   /**
    * 重试机制
    * @param {Function} fn 要重试的函数

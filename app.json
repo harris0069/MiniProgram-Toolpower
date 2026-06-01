@@ -6,17 +6,21 @@
     "pages/metronome/index",
     "pages/id-photo/index",
     "pages/bmi/index",
-    "pages/electronic-seal/electronic-seal",
     "pages/calendar/index",
     "pages/ruler/index",
     "pages/anniversary/index",
     "pages/anniversary/create",
     "pages/anniversary/detail",
-    "pages/wheel-decision/index"
+    "pages/wheel-decision/index",
+    "pages/link-parse/index"
   ],
   "window": {
     "navigationBarTextStyle": "black",
     "navigationStyle": "custom"
+  },
+  "networkTimeout": {
+    "request": 30000,
+    "downloadFile": 60000
   },
   "permission": {
     "scope.writePhotosAlbum": {

@@ -1,117 +1,76 @@
-<navigation-bar title="转盘决策" back="{{true}}" color="black" background="#FFF"></navigation-bar>
+<navigation-bar 
+  title="{{mode === 'list' ? '转盘决策' : currentScene.name}}" 
+  back="{{true}}"
+  delta="{{0}}"
+  homeButton="{{false}}"
+  bind:back="onBack"
+></navigation-bar>
 
-<view class="container">
-  <!-- 转盘区域 -->
-  <view class="wheel-section">
-    <view class="wheel-container">
+<!-- 场景列表 -->
+<view wx:if="{{mode === 'list'}}" class="list-mode">
+  <view class="list-header">
+    <text class="list-title">选择场景</text>
+  </view>
+  <view class="scene-grid">
+    <view 
+      class="scene-card" 
+      wx:for="{{scenes}}" 
+      wx:key="id"
+      bindtap="enterScene" 
+      data-id="{{item.id}}"
+      style="animation-delay: {{index * 80}}ms;"
+    >
+      <view class="scene-card-bar" style="background: {{item.ui.bgGradient[0]}};"></view>
+      <view class="scene-icon">{{item.icon}}</view>
+      <text class="scene-name">{{item.name}}</text>
+      <text class="scene-desc">{{item.desc}}</text>
+    </view>
+  </view>
+</view>
+
+<!-- 转盘模式 -->
+<view wx:if="{{mode === 'wheel'}}" class="wheel-page" style="background: {{bgGradient}};">
+  <!-- 结果区：白底圆角卡片，固定2行文字高度 -->
+  <view class="result-card" style="background: {{showResult ? pointerColor : '#fff'}};">
+    <text class="result-text {{showResult ? 'result-show' : ''}}">{{resultDisplay}}</text>
+  </view>
+
+  <!-- 转盘区域：仅转盘，按内容高度撑开 -->
+  <view class="wheel-core">
+    <view class="wheel-box" bindtap="startSpin">
       <canvas type="2d" id="wheelCanvas" class="wheel-canvas"></canvas>
-      
-      <!-- 转动按钮 -->
-      <view class="spin-button {{isSpinning ? 'spinning' : ''}}" bindtap="startSpin">
-        <text class="spin-text">{{isSpinning ? '转动中...' : '开始转动'}}</text>
-      </view>
-    </view>
-    
-    <!-- 结果显示 -->
-    <view class="result-section" wx:if="{{showResult}}">
-      <view class="result-card">
-        <text class="result-label">🎉 结果是</text>
-        <text class="result-text">{{result}}</text>
-      </view>
     </view>
   </view>
 
-  <!-- 选项管理 -->
-  <view class="options-section">
-    <view class="section-header">
-      <text class="section-title">选项设置</text>
-      <view class="header-buttons">
-        <button class="header-btn" bindtap="showTemplates">模板</button>
-        <button class="header-btn" bindtap="resetWheel">重置</button>
-      </view>
+  <!-- 操作按钮区 -->
+  <view class="action-bar">
+    <view class="start-btn {{isSpinning ? 'disabled' : ''}}" bindtap="startSpin" wx:if="{{!showResult}}">
+      <text class="start-btn-text">{{isSpinning ? '转动中...' : '开始转动'}}</text>
     </view>
-    
-    <view class="options-list">
-      <view class="option-item" wx:for="{{options}}" wx:key="index">
-        <view class="option-color" style="background-color: {{wheelColors[index % wheelColors.length]}}"></view>
-        <text class="option-text" bindtap="editOption" data-index="{{index}}">{{item}}</text>
-        <view class="option-actions">
-          <text class="action-btn edit-btn" bindtap="editOption" data-index="{{index}}">✏️</text>
-          <text class="action-btn delete-btn" bindtap="deleteOption" data-index="{{index}}" wx:if="{{options.length > 2}}">🗑️</text>
-        </view>
-      </view>
-      
-      <!-- 添加选项按钮 -->
-      <view class="add-option-btn" bindtap="addOption" wx:if="{{options.length < 8}}">
-        <text class="add-icon">+</text>
-        <text class="add-text">添加选项</text>
-      </view>
+    <view class="start-btn again" bindtap="startSpin" wx:if="{{showResult}}">
+      <text class="start-btn-text">再来一次</text>
     </view>
   </view>
 
-  <!-- 使用说明 -->
-  <view class="tips-section">
-    <view class="tips-header">
-      <text class="tips-icon">💡</text>
-      <text class="tips-title">使用说明</text>
+  <!-- 选项列表区：flex:1.5 约占 35%，可折叠滚动 -->
+  <view class="options-panel">
+    <view class="options-header" bindtap="toggleOptions">
+      <text class="options-title">全部选项（{{currentOptions.length}}项）</text>
+      <text class="options-toggle">{{optionsExpanded ? '收起 ▲' : '展开 ▼'}}</text>
     </view>
-    <view class="tips-content">
-      <text class="tip-item">• 点击选项可以编辑文字内容</text>
-      <text class="tip-item">• 支持2-8个选项，颜色自动分配</text>
-      <text class="tip-item">• 可以使用预设模板快速设置</text>
-      <text class="tip-item">• 转盘会随机转动3-6圈后停止</text>
-    </view>
-  </view>
-</view>
-
-<!-- 编辑选项弹窗 -->
-<view class="modal-overlay" wx:if="{{isEditing}}" bindtap="cancelEdit">
-  <view class="modal-content" catchtap="">
-    <view class="modal-header">
-      <text class="modal-title">编辑选项</text>
-    </view>
-    
-    <view class="modal-body">
-      <input 
-        class="edit-input" 
-        placeholder="请输入选项内容"
-        value="{{editingText}}"
-        bindinput="onTextInput"
-        focus="{{isEditing}}"
-        maxlength="10"
-      />
-    </view>
-    
-    <view class="modal-footer">
-      <button class="modal-btn cancel-btn" bindtap="cancelEdit">取消</button>
-      <button class="modal-btn confirm-btn" bindtap="confirmEdit">确定</button>
-    </view>
-  </view>
-</view>
-
-<!-- 模板选择弹窗 -->
-<view class="modal-overlay" wx:if="{{showTemplates}}" bindtap="hideTemplates">
-  <view class="modal-content template-modal" catchtap="">
-    <view class="modal-header">
-      <text class="modal-title">选择模板</text>
-      <text class="modal-close" bindtap="hideTemplates">×</text>
-    </view>
-    
-    <view class="modal-body">
-      <view class="template-list">
+    <scroll-view wx:if="{{optionsExpanded}}" class="options-scroll" scroll-y
+                  scroll-into-view="{{winningIndex >= 0 ? 'opt-' + winningIndex : ''}}">
+      <view class="options-grid">
         <view 
-          class="template-item"
-          wx:for="{{templates}}" 
-          wx:key="name"
-          bindtap="useTemplate"
-          data-index="{{index}}"
+          class="option-item {{winningIndex === index ? 'option-item-winner' : ''}}"
+          id="opt-{{index}}"
+          wx:for="{{currentOptions}}" 
+          wx:key="index"
         >
-          <text class="template-name">{{item.name}}</text>
-          <view class="template-options">
-            <text class="template-option" wx:for="{{item.options}}" wx:key="*this">{{item}}</text>
-          </view>
+          <text class="option-index" style="background: {{currentColors[index % currentColors.length]}}">{{index + 1}}</text>
+          <text class="option-name">{{item}}</text>
         </view>
       </view>
-    </view>
+    </scroll-view>
   </view>
 </view>

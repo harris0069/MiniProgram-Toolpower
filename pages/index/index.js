@@ -1,119 +1,141 @@
+const API_BASE = 'https://xcx.huangyiling.top/api';
+
 Page({
   data: {
     statusBarHeight: 0,
     navBarHeight: 0,
-    favoriteTools: [], // 常用工具（最多8个）
-    allTools: [], // 全部工具（排除已收藏的）
-    isManaging: false, // 是否处于管理模式
+    favoriteTools: [],
+    allTools: [],
+    isManaging: false,
+    featureFlags: {},
+    flagsLoaded: false,
     tools: [
       {
         id: 'calendar',
         name: '万年历',
         page: 'calendar',
         emoji: '📆',
-        bgColor: 'linear-gradient(135deg, #FFD4A3 0%, #FFDDB3 100%)' // 浅橙色
+        bgColor: 'linear-gradient(135deg, #FFD4A3 0%, #FFDDB3 100%)'
       },
       {
         id: 'ruler',
         name: '尺子',
         page: 'ruler',
         emoji: '📏',
-        bgColor: 'linear-gradient(135deg, #B0C4DE 0%, #C0D4EE 100%)' // 淡蓝灰
-      },
-      {
-        id: 'image-compress',
-        name: '图片压缩',
-        page: 'image-compress',
-        emoji: '🖼️',
-        bgColor: 'linear-gradient(135deg, #FFB6C1 0%, #FFC0CB 100%)' // 柔和粉色
-      },
-      {
-        id: 'watermark',
-        name: '水印工具',
-        page: 'watermark',
-        emoji: '💧',
-        bgColor: 'linear-gradient(135deg, #87CEEB 0%, #98D8F8 100%)' // 天蓝色
+        bgColor: 'linear-gradient(135deg, #B0C4DE 0%, #C0D4EE 100%)'
       },
       {
         id: 'metronome',
         name: '节拍器',
         page: 'metronome',
         emoji: '🎵',
-        bgColor: 'linear-gradient(135deg, #B0E0E6 0%, #ADD8E6 100%)' // 浅蓝色
-      },
-      {
-        id: 'bmi',
-        name: 'BMI计算器',
-        page: 'bmi',
-        emoji: '⚖️',
-        bgColor: 'linear-gradient(135deg, #98FB98 0%, #B0FFA8 100%)' // 薄荷绿
-      },
-      {
-        id: 'anniversary',
-        name: '纪念日',
-        page: 'anniversary',
-        emoji: '💝',
-        bgColor: 'linear-gradient(135deg, #FFB6D9 0%, #FFC9E3 100%)' // 粉红色
-      },
-      {
-        id: 'electronic-seal',
-        name: '电子印章',
-        page: 'electronic-seal/electronic-seal',
-        emoji: '🔏',
-        bgColor: 'linear-gradient(135deg, #FFE4B5 0%, #FFEDC0 100%)' // 淡黄色
-      },
-      {
-        id: 'wheel-decision',
-        name: '转盘决策',
-        page: 'wheel-decision',
-        emoji: '🎯',
-        bgColor: 'linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%)' // 粉红渐变
+        bgColor: 'linear-gradient(135deg, #B0E0E6 0%, #ADD8E6 100%)'
       },
       {
         id: 'id-photo',
         name: '证件照',
         page: 'id-photo',
         emoji: '📷',
-        bgColor: 'linear-gradient(135deg, #DDA0DD 0%, #E6B8E6 100%)' // 浅紫色
+        bgColor: 'linear-gradient(135deg, #DDA0DD 0%, #E6B8E6 100%)'
+      },
+      {
+        id: 'image-compress',
+        name: '图片压缩',
+        page: 'image-compress',
+        emoji: '🖼️',
+        bgColor: 'linear-gradient(135deg, #FFB6C1 0%, #FFC0CB 100%)'
+      },
+      {
+        id: 'watermark',
+        name: '水印工具',
+        page: 'watermark',
+        emoji: '💧',
+        bgColor: 'linear-gradient(135deg, #87CEEB 0%, #98D8F8 100%)'
+      },
+      {
+        id: 'bmi',
+        name: 'BMI计算器',
+        page: 'bmi',
+        emoji: '⚖️',
+        bgColor: 'linear-gradient(135deg, #98FB98 0%, #B0FFA8 100%)'
+      },
+      {
+        id: 'anniversary',
+        name: '纪念日',
+        page: 'anniversary',
+        emoji: '💝',
+        bgColor: 'linear-gradient(135deg, #FFB6D9 0%, #FFC9E3 100%)'
+      },
+      {
+        id: 'wheel-decision',
+        name: '转盘决策',
+        page: 'wheel-decision',
+        emoji: '🎯',
+        bgColor: 'linear-gradient(135deg, #FF9A9E 0%, #FECFEF 100%)'
+      },
+      {
+        id: 'link-parse',
+        name: '链接解析',
+        page: 'link-parse',
+        emoji: '🎬',
+        bgColor: 'linear-gradient(135deg, #A8D8EA 0%, #C4E0F0 100%)'
       }
     ]
   },
 
   onLoad() {
-    // 获取系统信息，适配不同设备
     const systemInfo = wx.getWindowInfo();
     const statusBarHeight = systemInfo.statusBarHeight || 0;
-    const navBarHeight = statusBarHeight + 44; // 状态栏高度 + 导航栏高度
+    const navBarHeight = statusBarHeight + 44;
     
-    this.setData({
-      statusBarHeight,
-      navBarHeight
-    });
+    this.setData({ statusBarHeight, navBarHeight });
     
-    this.loadToolsData();
+    this.fetchFeatureFlags().then(() => this.loadToolsData());
   },
 
   onShow() {
-    // 每次显示页面时刷新工具列表
-    this.loadToolsData();
+    if (this.data.flagsLoaded) {
+      this.loadToolsData();
+    } else {
+      this.fetchFeatureFlags().then(() => this.loadToolsData());
+    }
   },
 
-  // 加载工具数据
+  async fetchFeatureFlags() {
+    try {
+      const res = await new Promise((resolve, reject) => {
+        wx.request({
+          url: API_BASE + '/feature_flags.php',
+          timeout: 5000,
+          success: resolve,
+          fail: reject
+        });
+      });
+      if (res.data && res.data.success) {
+        this.setData({ featureFlags: res.data.flags });
+      }
+    } catch (e) {
+      console.warn('[Index] 获取功能开关失败', e);
+    }
+    this.setData({ flagsLoaded: true });
+  },
+
   loadToolsData() {
     const favorites = wx.getStorageSync('tool_favorites') || [];
     
-    // 获取常用工具列表
-    const favoriteTools = favorites
-      .map(id => this.data.tools.find(t => t.id === id))
-      .filter(t => t); // 过滤掉可能不存在的工具
-    
-    // 获取全部工具列表（排除已收藏的）
-    const allTools = this.data.tools.filter(tool => !favorites.includes(tool.id));
-    
-    this.setData({
-      favoriteTools,
-      allTools
+    // 过滤被后台关闭的功能
+    const enabledTools = this.data.tools.filter(t => {
+      const flagKey = t.id.replace(/-/g, '_');
+      return this.data.featureFlags[flagKey] !== false;
     });
+    
+    const favoriteTools = favorites
+      .map(id => enabledTools.find(t => t.id === id))
+      .filter(t => t);
+    
+    const allTools = enabledTools.filter(tool => !favorites.includes(tool.id));
+    
+    this.setData({ favoriteTools, allTools });
   },
 
   // 导航到工具页面

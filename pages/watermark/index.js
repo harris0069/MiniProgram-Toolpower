@@ -66,6 +66,12 @@ Page({
     isZooming: false,       // 是否正在缩放
     lastDistance: 0,        // 上次两指距离
     
+    // 当前选中位置预设（用于快捷定位高亮）
+    currentPosition: '',
+    
+    // 主题色（用于组件属性绑定）
+    primaryColor: '#4A90D9',
+    
     // 按钮状态
     hasImage: false,        // 是否已选择图片
     canSave: false          // 是否可以保存
@@ -90,32 +96,32 @@ Page({
   },
 
   // 初始化 Canvas
-  initCanvas() {
+  initCanvas(retries = 3) {
     const query = wx.createSelectorQuery();
     query.select('#watermarkCanvas')
       .fields({ node: true, size: true })
       .exec((res) => {
-        if (!res[0]) return;
+        if (!res[0] || !res[0].node) {
+          if (retries > 0) {
+            setTimeout(() => this.initCanvas(retries - 1), 200);
+          }
+          return;
+        }
         
         const canvas = res[0].node;
         const ctx = canvas.getContext('2d');
         
-        // 获取屏幕信息
         const systemInfo = wx.getWindowInfo();
         const dpr = systemInfo.pixelRatio || 2;
         
-        // 使用查询到的实际尺寸
         const canvasWidth = res[0].width;
         const canvasHeight = res[0].height;
         
-        // 设置 Canvas 实际大小
         canvas.width = canvasWidth * dpr;
         canvas.height = canvasHeight * dpr;
         
-        // 缩放绘图上下文
         ctx.scale(dpr, dpr);
         
-        // 保存 Canvas 相关对象
         this.canvas = canvas;
         this.ctx = ctx;
         this.dpr = dpr;
@@ -125,7 +131,6 @@ Page({
           canvasHeight
         });
         
-        // 绘制初始状态
         this.drawCanvas();
       });
   },
@@ -167,16 +172,7 @@ Page({
         this.drawGuidelines();
       }
     } else {
-      // 显示提示文字
-      ctx.fillStyle = '#666';
-      ctx.font = 'bold 16px sans-serif';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText('点击下方按钮选择图片', canvasWidth / 2, canvasHeight / 2);
-      
-      // 绘制图标提示
-      ctx.font = '48px sans-serif';
-      ctx.fillText('📁', canvasWidth / 2, canvasHeight / 2 - 60);
+      // 空状态由 WXML overlay 展示，Canvas 只画网格
     }
   },
 
@@ -1131,7 +1127,8 @@ Page({
     if (this.data.isDragging) {
       this.setData({ 
         isDragging: false,
-        showGuidelines: false
+        showGuidelines: false,
+        currentPosition: ''
       });
       this.drawCanvas();
       this.saveParams();
@@ -1184,38 +1181,46 @@ Page({
     
     if (!this.imageDrawParams) {
       wx.showToast({
-        title: '请先选择图片',
+        title: '请先选择底图',
         icon: 'none'
       });
       return;
     }
     
-    const { drawX, drawY, drawWidth, drawHeight } = this.imageDrawParams;
+    const { textWatermark, imageWatermark, watermarkType } = this.data;
     let x, y;
+    const margin = 40;
     
-    // 计算水印尺寸（用于边距计算）
-    const margin = 40; // 边距
+    // 计算水印实际尺寸
+    let wmW = 0, wmH = 0;
+    if (watermarkType === 'text' && textWatermark.content) {
+      wmW = textWatermark.fontSize * textWatermark.content.length * 0.6;
+      wmH = textWatermark.fontSize;
+    } else if (watermarkType === 'image' && imageWatermark.image) {
+      wmW = imageWatermark.image.width * imageWatermark.scale;
+      wmH = imageWatermark.image.height * imageWatermark.scale;
+    }
     
     switch (position) {
       case 'top-left':
-        x = drawX + margin;
-        y = drawY + margin;
+        x = this.imageDrawParams.drawX + margin + wmW / 2;
+        y = this.imageDrawParams.drawY + margin + wmH / 2;
         break;
       case 'top-right':
-        x = drawX + drawWidth - margin;
-        y = drawY + margin;
+        x = this.imageDrawParams.drawX + this.imageDrawParams.drawWidth - margin - wmW / 2;
+        y = this.imageDrawParams.drawY + margin + wmH / 2;
         break;
       case 'bottom-left':
-        x = drawX + margin;
-        y = drawY + drawHeight - margin;
+        x = this.imageDrawParams.drawX + margin + wmW / 2;
+        y = this.imageDrawParams.drawY + this.imageDrawParams.drawHeight - margin - wmH / 2;
         break;
       case 'bottom-right':
-        x = drawX + drawWidth - margin;
-        y = drawY + drawHeight - margin;
+        x = this.imageDrawParams.drawX + this.imageDrawParams.drawWidth - margin - wmW / 2;
+        y = this.imageDrawParams.drawY + this.imageDrawParams.drawHeight - margin - wmH / 2;
         break;
       case 'center':
-        x = drawX + drawWidth / 2;
-        y = drawY + drawHeight / 2;
+        x = this.imageDrawParams.drawX + this.imageDrawParams.drawWidth / 2;
+        y = this.imageDrawParams.drawY + this.imageDrawParams.drawHeight / 2;
         break;
       default:
         return;
@@ -1223,7 +1228,8 @@ Page({
     
     this.setData({
       'watermarkPosition.x': x,
-      'watermarkPosition.y': y
+      'watermarkPosition.y': y,
+      currentPosition: position
     });
     
     this.drawCanvas();
@@ -1242,7 +1248,7 @@ Page({
   saveToAlbum() {
     if (!this.data.hasImage) {
       wx.showToast({
-        title: '请先选择图片',
+        title: '请先选择底图',
         icon: 'none'
       });
       return;
@@ -1258,15 +1264,7 @@ Page({
       return;
     }
     
-    // 弹出格式选择
-    wx.showActionSheet({
-      itemList: ['保存为 JPG（推荐）', '保存为 PNG'],
-      success: (res) => {
-        const format = res.tapIndex === 0 ? 'jpg' : 'png';
-        const quality = res.tapIndex === 0 ? 0.9 : 1;
-        this.exportAndSave(format, quality);
-      }
-    });
+    this.exportAndSave('png', 1);
   },
 
   // 检查是否有水印内容
@@ -1327,95 +1325,136 @@ Page({
     });
   },
 
-  // 导出图片
-  exportImage(format, quality) {
-    const query = wx.createSelectorQuery();
-    query.select('#watermarkCanvas')
-      .fields({ node: true })
-      .exec((res) => {
-        if (!res || !res[0] || !res[0].node) {
-          wx.hideLoading();
-          wx.showToast({
-            title: 'Canvas未找到，请重试',
-            icon: 'none'
-          });
-          return;
-        }
-        
-        const canvas = res[0].node;
-        
-        // 确保Canvas有内容
-        if (!canvas.width || !canvas.height) {
-          wx.hideLoading();
-          wx.showToast({
-            title: 'Canvas尺寸异常，请重新选择图片',
-            icon: 'none'
-          });
-          return;
-        }
-        
-        console.log('[Watermark] 导出图片:', {
-          format,
-          quality,
-          canvasWidth: canvas.width,
-          canvasHeight: canvas.height
+  // 导出图片（全尺寸）
+  async exportImage(fileType, quality) {
+    try {
+      const { baseImagePath, baseImageWidth, baseImageHeight, watermarkType, watermarkPosition, textWatermark, imageWatermark, tiledWatermark } = this.data;
+      const { drawX, drawY, drawWidth, drawHeight } = this.imageDrawParams || {};
+      if (!drawWidth) throw new Error('图片参数异常');
+
+      // 限制最大尺寸 3000px，避免内存溢出
+      let exportW = baseImageWidth;
+      let exportH = baseImageHeight;
+      const MAX = 3000;
+      if (exportW > MAX || exportH > MAX) {
+        const ratio = exportW / exportH;
+        if (exportW > exportH) { exportW = MAX; exportH = Math.round(MAX / ratio); }
+        else { exportH = MAX; exportW = Math.round(MAX * ratio); }
+      }
+
+      const canvas = wx.createOffscreenCanvas({ type: '2d', width: exportW, height: exportH });
+      const ctx = canvas.getContext('2d');
+
+      // 加载原图并绘制
+      const img = canvas.createImage();
+      await new Promise((resolve, reject) => {
+        const timer = setTimeout(() => reject(new Error('图片加载超时')), 15000);
+        img.onload = () => { clearTimeout(timer); resolve(); };
+        img.onerror = () => { clearTimeout(timer); reject(new Error('图片加载失败')); };
+        img.src = baseImagePath;
+      });
+      ctx.drawImage(img, 0, 0, exportW, exportH);
+
+      // 坐标映射（屏幕坐标 → 原始图片坐标）
+      const scaleX = exportW / drawWidth;
+      const scaleY = exportH / drawHeight;
+      const ox = (watermarkPosition.x - drawX) * scaleX;
+      const oy = (watermarkPosition.y - drawY) * scaleY;
+
+      ctx.save();
+
+      if (watermarkType === 'text' && textWatermark.content) {
+        ctx.translate(ox, oy);
+        ctx.rotate((textWatermark.rotation * Math.PI) / 180);
+        ctx.globalAlpha = textWatermark.opacity;
+        ctx.fillStyle = textWatermark.color;
+        ctx.font = `${textWatermark.fontSize * scaleX}px sans-serif`;
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        ctx.fillText(textWatermark.content, 0, 0);
+      } else if (watermarkType === 'image' && imageWatermark.image) {
+        const wmImg = imageWatermark.image;
+        const wmW = wmImg.width * imageWatermark.scale * scaleX;
+        const wmH = wmImg.height * imageWatermark.scale * scaleY;
+        ctx.translate(ox, oy);
+        ctx.rotate((imageWatermark.rotation * Math.PI) / 180);
+        ctx.globalAlpha = imageWatermark.opacity;
+        // 需要重新加载水印图片
+        const wmCanvas = wx.createOffscreenCanvas({ type: '2d', width: 1, height: 1 });
+        const wmImg2 = wmCanvas.createImage();
+        await new Promise((resolve, reject) => {
+          const timer = setTimeout(() => reject(new Error('水印图加载超时')), 15000);
+          wmImg2.onload = () => { clearTimeout(timer); resolve(); };
+          wmImg2.onerror = () => { clearTimeout(timer); reject(new Error('水印图加载失败')); };
+          wmImg2.src = imageWatermark.path;
         });
-        
-        wx.canvasToTempFilePath({
-          canvas: canvas,
-          x: 0,
-          y: 0,
-          width: canvas.width,
-          height: canvas.height,
-          destWidth: canvas.width,
-          destHeight: canvas.height,
-          fileType: format,
-          quality: quality,
-          success: (res) => {
-            console.log('[Watermark] Canvas导出成功:', res);
-            if (res && res.tempFilePath) {
-              this.saveImageToAlbum(res.tempFilePath);
-            } else {
-              wx.hideLoading();
-              wx.showToast({
-                title: '导出失败：无效的文件路径',
-                icon: 'none'
-              });
+        ctx.drawImage(wmImg2, -wmW / 2, -wmH / 2, wmW, wmH);
+      } else if (watermarkType === 'tiled') {
+        const mode = tiledWatermark.mode;
+        const gapX = tiledWatermark.colGap * scaleX;
+        const gapY = tiledWatermark.rowGap * scaleY;
+        const diagonal = Math.sqrt(exportW * exportW + exportH * exportH);
+
+        if (mode === 'text' && tiledWatermark.textContent) {
+          const fontSize = textWatermark.fontSize * scaleX;
+          ctx.font = `${fontSize}px sans-serif`;
+          const metrics = ctx.measureText(tiledWatermark.textContent);
+          const unitW = metrics.width;
+          const unitH = fontSize;
+          const cols = Math.ceil(diagonal / (unitW + gapX)) + 2;
+          const rows = Math.ceil(diagonal / (unitH + gapY)) + 2;
+          ctx.translate(exportW / 2, exportH / 2);
+          ctx.rotate((tiledWatermark.rotation * Math.PI) / 180);
+          ctx.globalAlpha = textWatermark.opacity;
+          ctx.fillStyle = textWatermark.color;
+          ctx.textAlign = 'center';
+          ctx.textBaseline = 'middle';
+          const startX = -cols * (unitW + gapX) / 2;
+          const startY = -rows * (unitH + gapY) / 2;
+          for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+              ctx.fillText(tiledWatermark.textContent, startX + c * (unitW + gapX), startY + r * (unitH + gapY));
             }
-          },
-          fail: (err) => {
-            wx.hideLoading();
-            console.error('导出图片失败:', err);
-            
-            let errorMsg = '图片导出失败';
-            if (err && err.errMsg) {
-              if (err.errMsg.includes('canvas is empty')) {
-                errorMsg = 'Canvas为空，请确保已添加图片和水印';
-              } else if (err.errMsg.includes('fail')) {
-                errorMsg = '导出失败，请重试';
-              } else {
-                errorMsg = '导出失败: ' + err.errMsg;
-              }
-            }
-            
-            wx.showModal({
-              title: '导出失败',
-              content: errorMsg,
-              showCancel: true,
-              confirmText: '重试',
-              cancelText: '取消',
-              success: (modalRes) => {
-                if (modalRes.confirm) {
-                  // 延迟重试
-                  setTimeout(() => {
-                    this.exportImage(format, quality);
-                  }, 500);
-                }
-              }
-            });
           }
+        } else if (mode === 'image' && imageWatermark.path) {
+          const wmCanvas = wx.createOffscreenCanvas({ type: '2d', width: 1, height: 1 });
+          const wmImg2 = wmCanvas.createImage();
+          await new Promise((resolve, reject) => {
+            const timer = setTimeout(() => reject(new Error('水印图加载超时')), 15000);
+            wmImg2.onload = () => { clearTimeout(timer); resolve(); };
+            wmImg2.onerror = () => { clearTimeout(timer); reject(new Error('水印图加载失败')); };
+            wmImg2.src = imageWatermark.path;
+          });
+          const wmW = wmImg2.width * imageWatermark.scale * scaleX;
+          const wmH = wmImg2.height * imageWatermark.scale * scaleY;
+          const cols = Math.ceil(diagonal / (wmW + gapX)) + 2;
+          const rows = Math.ceil(diagonal / (wmH + gapY)) + 2;
+          ctx.translate(exportW / 2, exportH / 2);
+          ctx.rotate((tiledWatermark.rotation * Math.PI) / 180);
+          ctx.globalAlpha = imageWatermark.opacity;
+          const startX = -cols * (wmW + gapX) / 2;
+          const startY = -rows * (wmH + gapY) / 2;
+          for (let r = 0; r < rows; r++) {
+            for (let c = 0; c < cols; c++) {
+              ctx.drawImage(wmImg2, startX + c * (wmW + gapX), startY + r * (wmH + gapY), wmW, wmH);
+            }
+          }
+        }
+      }
+
+      ctx.restore();
+
+      const tmp = await new Promise((resolve, reject) => {
+        wx.canvasToTempFilePath({
+          canvas, fileType, quality,
+          success: resolve, fail: reject,
         });
       });
+      this.saveImageToAlbum(tmp.tempFilePath);
+    } catch (e) {
+      wx.hideLoading();
+      wx.showToast({ title: '导出失败: ' + (e.message || e), icon: 'none' });
+    }
   },
 
   // 保存图片到相册

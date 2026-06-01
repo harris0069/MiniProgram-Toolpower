@@ -2,11 +2,12 @@ const app = getApp();
 
 // 常用规格定义
 const SPECS = [
-  { id: '1inch', name: '一寸', width: 25, height: 35, pxWidth: 295, pxHeight: 413, desc: '简历/证件' },
-  { id: '2inch', name: '二寸', width: 35, height: 49, pxWidth: 413, pxHeight: 579, desc: '护照/签证' },
   { id: 'small1', name: '小一寸', width: 22, height: 32, pxWidth: 260, pxHeight: 378, desc: '驾驶证/社保' },
-  { id: 'large1', name: '大一寸', width: 33, height: 48, pxWidth: 390, pxHeight: 567, desc: '部分护照' },
-  { id: '5inch', name: '五寸', width: 89, height: 127, pxWidth: 1051, pxHeight: 1500, desc: '生活照' }
+  { id: '1inch', name: '一寸', width: 25, height: 35, pxWidth: 295, pxHeight: 413, desc: '简历/证件' },
+  { id: 'large1', name: '大一寸', width: 33, height: 48, pxWidth: 390, pxHeight: 567, desc: '护照/部分签证' },
+  { id: 'small2', name: '小二寸', width: 35, height: 45, pxWidth: 413, pxHeight: 531, desc: '部分签证/护照' },
+  { id: '2inch', name: '二寸', width: 35, height: 49, pxWidth: 413, pxHeight: 579, desc: '毕业证/部分证件' },
+  { id: 'large2', name: '大二寸', width: 35, height: 53, pxWidth: 413, pxHeight: 626, desc: '部分证书/留学' }
 ];
 
 const COLORS = [
@@ -49,7 +50,29 @@ Page({
     // 抠图状态
     isTransparentBg: false,
     originalImagePath: null, // 保存原始图片路径
-    isProcessingBg: false // 是否正在处理背景
+    isProcessingBg: false, // 是否正在处理背景
+
+    // 安全区
+    safeAreaBottom: 0,
+
+    // 使用次数
+    remainingUses: -1,
+    showRedeemModal: false,
+    redeemCode: '',
+    redeemError: '',
+    isRedeeming: false,
+
+    // 6寸排版
+    showLayoutPanel: false,
+    layoutRows: 4,
+    layoutCols: 4,
+    layoutGap: 24,
+    layoutOffsetX: 0,
+    layoutOffsetY: 0,
+    layoutTotal: 16,
+    layoutPreviewUrl: '',
+    layoutGenerating: false,
+    layoutSinglePath: ''
   },
   
   // 触摸手势变量
@@ -63,6 +86,19 @@ Page({
   onLoad() {
     this.updatePreviewBoxSize(this.data.currentSpec);
     this.loadHistory();
+    this.fetchUsage();
+    // Skyline 可能不支持 env(safe-area-inset-bottom)，通过 JS 计算
+    this.applySafeArea();
+  },
+
+  applySafeArea() {
+    try {
+      const info = wx.getWindowInfo();
+      const safeBottom = info.screenHeight - info.safeArea.bottom;
+      if (safeBottom > 0) {
+        this.setData({ safeAreaBottom: safeBottom });
+      }
+    } catch (e) {}
   },
 
   // Recalculate preview box size
@@ -182,21 +218,21 @@ Page({
     });
   },
 
-  // 选择图片（直接加载，不询问）
+  // 选择图片
   async chooseImage() {
     try {
-      // 1. 选择图片
       const res = await new Promise((resolve, reject) => {
-        wx.chooseImage({
+        wx.chooseMedia({
           count: 1,
-          sizeType: ['compressed'], // 使用压缩图，避免超过 4MB
+          mediaType: ['image'],
           sourceType: ['album', 'camera'],
+          sizeType: ['compressed'],
           success: resolve,
           fail: reject
         });
       });
       
-      const tempFilePath = res.tempFilePaths[0];
+      const tempFilePath = res.tempFiles[0].tempFilePath;
       const fileSize = res.tempFiles[0].size;
       
       // 检查文件大小
@@ -344,72 +380,73 @@ Page({
         reject(new Error('没有图片'));
         return;
       }
-      
-      const query = wx.createSelectorQuery();
-      query.select('#photoCanvas')
-        .fields({ node: true, size: true })
-        .exec(async (res) => {
-          const canvas = res[0].node;
-          const ctx = canvas.getContext('2d');
-          
-          const spec = this.data.currentSpec;
-          
-          // Render at the target export size.
-          canvas.width = spec.pxWidth;
-          canvas.height = spec.pxHeight;
-          
-          // Fill the selected background color.
-          ctx.fillStyle = this.data.backgroundColor;
-          ctx.fillRect(0, 0, canvas.width, canvas.height);
-          
-          // Map preview coordinates into export canvas coordinates.
-          const scaleRatio = spec.pxWidth / this.data.previewWidth;
-          
-          const img = canvas.createImage();
-          img.src = this.data.tempImagePath;
-          
-          img.onload = () => {
+
+      const spec = this.data.currentSpec;
+      const scaleRatio = spec.pxWidth / this.data.previewWidth;
+
+      const doDraw = (canvas) => {
+        const ctx = canvas.getContext('2d');
+        canvas.width = spec.pxWidth;
+        canvas.height = spec.pxHeight;
+
+        ctx.fillStyle = this.data.backgroundColor;
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+        const img = canvas.createImage();
+        const timer = setTimeout(() => {
+          reject(new Error('图片加载超时'));
+        }, 10000);
+
+        img.onload = () => {
+          clearTimeout(timer);
+          try {
             ctx.save();
-            
-            // Move to the image center, then apply rotation and scaling.
-            const previewImgCenterX = this.data.imgX + this.data.imgWidth / 2;
-            const previewImgCenterY = this.data.imgY + this.data.imgHeight / 2;
-            
-            // Convert preview center to canvas center.
-            const canvasImgCenterX = previewImgCenterX * scaleRatio;
-            const canvasImgCenterY = previewImgCenterY * scaleRatio;
-            
-            ctx.translate(canvasImgCenterX, canvasImgCenterY);
+            const cx = this.data.imgX + this.data.imgWidth / 2;
+            const cy = this.data.imgY + this.data.imgHeight / 2;
+            ctx.translate(cx * scaleRatio, cy * scaleRatio);
             ctx.rotate(this.data.imgRotate * Math.PI / 180);
             ctx.scale(this.data.imgScale, this.data.imgScale);
-            
-            // Draw the transformed image around its center point.
-            const drawW = this.data.imgWidth * scaleRatio;
-            const drawH = this.data.imgHeight * scaleRatio;
-            
-            ctx.drawImage(img, -drawW / 2, -drawH / 2, drawW, drawH);
-            
+            ctx.drawImage(img, -this.data.imgWidth * scaleRatio / 2, -this.data.imgHeight * scaleRatio / 2, this.data.imgWidth * scaleRatio, this.data.imgHeight * scaleRatio);
             ctx.restore();
-            
-            // 导出
+
             wx.canvasToTempFilePath({
               canvas: canvas,
               fileType: 'jpg',
               quality: 1,
-              success: (res) => {
-                resolve(res.tempFilePath);
-              },
-              fail: (err) => {
-                console.error(err);
-                reject(err);
-              }
+              success: (res) => resolve(res.tempFilePath),
+              fail: () => reject(new Error('导出图片失败'))
             });
-          };
-          
-          img.onerror = (err) => {
-            reject(err);
-          };
-        });
+          } catch (e) {
+            reject(new Error('绘制图片失败: ' + e.message));
+          }
+        };
+
+        img.onerror = () => {
+          clearTimeout(timer);
+          reject(new Error('图片加载失败'));
+        };
+
+        img.src = this.data.tempImagePath;
+      };
+
+      // 优先使用离屏 Canvas（兼容 Skyline 和 WebView）
+      try {
+        const offscreen = wx.createOffscreenCanvas({ type: '2d', width: spec.pxWidth, height: spec.pxHeight });
+        if (offscreen && offscreen.getContext) {
+          doDraw(offscreen);
+          return;
+        }
+      } catch (e) {}
+
+      // 回退：从页面 Canvas 节点获取
+      const query = wx.createSelectorQuery().in(this);
+      query.select('#photoCanvas').fields({ node: true, size: true }).exec((res) => {
+        if (res && res[0] && res[0].node) {
+          doDraw(res[0].node);
+        } else {
+          reject(new Error('Canvas 不可用'));
+        }
+      });
     });
   },
 
@@ -429,23 +466,6 @@ Page({
       wx.showToast({ title: '生成失败', icon: 'none' });
     }
   },
-
-  // 仅保存到本地（不生成新图）
-  async saveToLocal() {
-    if (!this.data.tempImagePath) return;
-    
-    wx.showLoading({ title: '保存中...' });
-    
-    try {
-      const tempFilePath = await this.generatePhoto();
-      await this.saveToAlbum(tempFilePath);
-      this.addToHistory(tempFilePath, this.data.currentSpec.name);
-    } catch (error) {
-      console.error('保存失败', error);
-      wx.hideLoading();
-      wx.showToast({ title: '保存失败', icon: 'none' });
-    }
-  },
   
   saveToAlbum(filePath) {
     wx.saveImageToPhotosAlbum({
@@ -458,9 +478,9 @@ Page({
         wx.hideLoading();
         if (err.errMsg && err.errMsg.includes('auth')) {
           wx.showModal({
-            title: '\u63d0\u793a',
-            content: '\u9700\u8981\u76f8\u518c\u6743\u9650\u4fdd\u5b58\u56fe\u7247',
-            confirmText: '\u53bb\u8bbe\u7f6e',
+            title: '提示',
+            content: '需要相册权限保存图片',
+            confirmText: '去设置',
             success: (res) => {
                if (res.confirm) wx.openSetting();
             }
@@ -544,6 +564,57 @@ Page({
   },
 
   /**
+   * 查询当日剩余使用次数
+   */
+  async fetchUsage() {
+    try {
+      const ApiClient = require('../../utils/apiClient.js');
+      const openid = await ApiClient.getOpenId();
+      const res = await ApiClient.checkUsage(openid);
+      this.setData({ remainingUses: res.remaining });
+    } catch (e) {
+      console.warn('[ID Photo] 获取使用次数失败', e);
+    }
+  },
+
+  showRedeemModal() {
+    this.setData({ showRedeemModal: true, redeemCode: '', redeemError: '' });
+  },
+
+  hideRedeemModal() {
+    this.setData({ showRedeemModal: false, redeemCode: '', redeemError: '' });
+  },
+
+  onRedeemInput(e) {
+    this.setData({ redeemCode: e.detail.value, redeemError: '' });
+  },
+
+  async doRedeem() {
+    const code = this.data.redeemCode.trim().toUpperCase();
+    if (!code) return;
+
+    this.setData({ isRedeeming: true, redeemError: '' });
+
+    try {
+      const ApiClient = require('../../utils/apiClient.js');
+      const openid = await ApiClient.getOpenId();
+      const res = await ApiClient.redeemCode(openid, code);
+
+      wx.showToast({ title: res.message || '兑换成功', icon: 'success' });
+      this.setData({
+        showRedeemModal: false,
+        redeemCode: '',
+      });
+      // 刷新使用次数
+      this.fetchUsage();
+    } catch (e) {
+      this.setData({ redeemError: e.message || '兑换失败' });
+    } finally {
+      this.setData({ isRedeeming: false });
+    }
+  },
+
+  /**
    * 自动抠图（用户无感知）- 使用后端API
    */
   async autoRemoveBackground() {
@@ -562,19 +633,21 @@ Page({
     const startTime = Date.now();
     
     try {
-      // 引入API客户端
       const ApiClient = require('../../utils/apiClient.js');
-      
+
+      // 检查剩余次数
+      const openid = await ApiClient.getOpenId();
+      const usage = await ApiClient.checkUsage(openid);
+      if (usage.remaining <= 0) {
+        throw new Error('今日AI抠图次数已用完，请明日再试或输入兑换码增加次数');
+      }
+
       // 1. 将图片转换为Base64
       console.log('[ID Photo] 开始转换图片为Base64...');
       const imageBase64 = await ApiClient.imageToBase64(this.data.originalImagePath);
       console.log('[ID Photo] 图片转换成功，大小:', Math.round(imageBase64.length / 1024), 'KB');
       
-      // 2. 获取用户openid
-      const openid = await ApiClient.getOpenId();
-      console.log('[ID Photo] 获取openid:', openid);
-      
-      // 3. 调用人像分割API（带重试机制）
+      // 2. 调用人像分割API（带重试机制）
       console.log('[ID Photo] 开始调用人像分割API...');
       const result = await ApiClient.retry(async () => {
         return await ApiClient.removeBackground(imageBase64, openid);
@@ -593,6 +666,9 @@ Page({
       // 5. 加载处理后的图片
       this.setData({ isTransparentBg: true });
       await this.loadImage(processedFilePath);
+
+      // 刷新剩余次数
+      this.fetchUsage();
       
       const totalDuration = Date.now() - startTime;
       console.log('[ID Photo] 抠图完成，总耗时:', totalDuration + 'ms');
@@ -622,7 +698,11 @@ Page({
       
       // 显示用户友好的错误提示
       let errorMsg = '抠图失败';
-      if (error.message.includes('网络')) {
+      let showRedeem = false;
+      if (error.message.includes('用完') || error.message.includes('兑换码')) {
+        errorMsg = error.message;
+        showRedeem = true;
+      } else if (error.message.includes('网络')) {
         errorMsg = '网络连接失败，请检查网络';
       } else if (error.message.includes('timeout')) {
         errorMsg = '处理超时，请重试';
@@ -630,24 +710,184 @@ Page({
         errorMsg = '服务暂时不可用，请稍后重试';
       }
       
-      wx.showModal({
-        title: '抠图失败',
-        content: `${errorMsg}\n\n是否使用原图继续制作证件照？`,
-        confirmText: '使用原图',
-        cancelText: '重新选择',
-        success: (res) => {
-          if (res.confirm) {
-            // 使用原图继续
-            this.setData({ isTransparentBg: false });
-          } else {
-            // 重新选择图片
-            this.chooseImage();
+      // 刷新剩余次数
+      this.fetchUsage();
+
+      if (showRedeem) {
+        wx.showModal({
+          title: '今日次数已用完',
+          content: errorMsg,
+          confirmText: '输入兑换码',
+          cancelText: '关闭',
+          success: (res) => {
+            if (res.confirm) {
+              this.showRedeemModal();
+            }
           }
-        }
-      });
+        });
+      } else {
+        wx.showModal({
+          title: '抠图失败',
+          content: `${errorMsg}\n\n是否使用原图继续制作证件照？`,
+          confirmText: '使用原图',
+          cancelText: '重新选择',
+          success: (res) => {
+            if (res.confirm) {
+              this.setData({ isTransparentBg: false });
+            } else {
+              this.chooseImage();
+            }
+          }
+        });
+      }
       
     } finally {
       this.setData({ isProcessingBg: false });
+    }
+  },
+
+  // ========== 6寸排版打印 ==========
+
+  calc6InchLayout(specPxW, specPxH) {
+    const PAPER_W = 1200;
+    const PAPER_H = 1800;
+    const MARGIN = 40;
+    const GAP = 24;
+    const usableW = PAPER_W - MARGIN * 2;
+    const usableH = PAPER_H - MARGIN * 2;
+    const cols = Math.max(1, Math.floor((usableW + GAP) / (specPxW + GAP)));
+    const rows = Math.max(1, Math.floor((usableH + GAP) / (specPxH + GAP)));
+    const usedW = specPxW * cols + GAP * (cols - 1);
+    const usedH = specPxH * rows + GAP * (rows - 1);
+    return {
+      cols, rows, gap: GAP,
+      offsetX: Math.floor((PAPER_W - usedW) / 2),
+      offsetY: Math.floor((PAPER_H - usedH) / 2),
+    };
+  },
+
+  async showLayoutPrint() {
+    if (!this.data.tempImagePath || this.data.layoutGenerating) return;
+    this.setData({ layoutGenerating: true });
+    wx.showLoading({ title: '生成排版中...' });
+    try {
+      const spec = this.data.currentSpec;
+      const singlePath = await this.generatePhoto();
+      const layout = this.calc6InchLayout(spec.pxWidth, spec.pxHeight);
+      this.setData({
+        layoutSinglePath: singlePath,
+        layoutRows: layout.rows,
+        layoutCols: layout.cols,
+        layoutGap: layout.gap,
+        layoutOffsetX: layout.offsetX,
+        layoutOffsetY: layout.offsetY,
+        layoutTotal: layout.rows * layout.cols,
+      });
+      await this.generateLayoutPreview();
+      this.setData({ showLayoutPanel: true });
+    } catch (e) {
+      wx.showToast({ title: '排版生成失败', icon: 'none' });
+    } finally {
+      this.setData({ layoutGenerating: false });
+      wx.hideLoading();
+    }
+  },
+
+  hideLayoutPanel() {
+    this.setData({ showLayoutPanel: false, layoutPreviewUrl: '', layoutSinglePath: '' });
+  },
+
+  drawLayoutOnCanvas(canvas, scale) {
+    return new Promise((resolve, reject) => {
+      const { layoutCols, layoutRows, layoutOffsetX, layoutOffsetY, layoutGap, layoutSinglePath } = this.data;
+      const spec = this.data.currentSpec;
+      const ctx = canvas.getContext('2d');
+      const w = 1200 * scale;
+      const h = 1800 * scale;
+      canvas.width = w;
+      canvas.height = h;
+      ctx.fillStyle = '#FFFFFF';
+      ctx.fillRect(0, 0, w, h);
+      const img = canvas.createImage();
+      const timer = setTimeout(() => reject(new Error('timeout')), 10000);
+      img.onload = () => {
+        clearTimeout(timer);
+        try {
+          for (let r = 0; r < layoutRows; r++) {
+            for (let c = 0; c < layoutCols; c++) {
+              const x = (layoutOffsetX + c * (spec.pxWidth + layoutGap)) * scale;
+              const y = (layoutOffsetY + r * (spec.pxHeight + layoutGap)) * scale;
+              ctx.drawImage(img, x, y, spec.pxWidth * scale, spec.pxHeight * scale);
+            }
+          }
+          resolve();
+        } catch (e) { reject(e); }
+      };
+      img.onerror = () => { clearTimeout(timer); reject(new Error('img load failed')); };
+      img.src = layoutSinglePath;
+    });
+  },
+
+  async generateLayoutPreview() {
+    try {
+      const canvas = wx.createOffscreenCanvas({ type: '2d', width: 120, height: 180 });
+      await this.drawLayoutOnCanvas(canvas, 0.1);
+      const res = await new Promise((resolve, reject) => {
+        wx.canvasToTempFilePath({
+          canvas, fileType: 'jpg', quality: 0.8,
+          success: resolve, fail: reject
+        });
+      });
+      this.setData({ layoutPreviewUrl: res.tempFilePath });
+    } catch (e) {
+      console.warn('[Layout] preview failed', e);
+    }
+  },
+
+  async adjustLayoutRows(e) {
+    const delta = parseInt(e.currentTarget.dataset.delta);
+    const newRows = Math.max(1, this.data.layoutRows + delta);
+    this.setData({ layoutRows: newRows, layoutTotal: newRows * this.data.layoutCols });
+    await this.generateLayoutPreview();
+  },
+
+  async adjustLayoutCols(e) {
+    const delta = parseInt(e.currentTarget.dataset.delta);
+    const newCols = Math.max(1, this.data.layoutCols + delta);
+    this.setData({ layoutCols: newCols, layoutTotal: this.data.layoutRows * newCols });
+    await this.generateLayoutPreview();
+  },
+
+  async saveLayoutPhoto() {
+    wx.showLoading({ title: '保存排版中...' });
+    try {
+      const canvas = wx.createOffscreenCanvas({ type: '2d', width: 1200, height: 1800 });
+      await this.drawLayoutOnCanvas(canvas, 1);
+      const tempPath = await new Promise((resolve, reject) => {
+        wx.canvasToTempFilePath({
+          canvas, fileType: 'jpg', quality: 0.95,
+          success: resolve, fail: reject
+        });
+      });
+      await new Promise((resolve, reject) => {
+        wx.saveImageToPhotosAlbum({
+          filePath: tempPath,
+          success: () => { wx.hideLoading(); wx.showToast({ title: '已保存到相册', icon: 'success' }); resolve(); },
+          fail: (err) => {
+            wx.hideLoading();
+            if (err.errMsg && err.errMsg.includes('auth')) {
+              wx.showModal({ title: '提示', content: '需要相册权限保存图片', confirmText: '去设置', success: (r) => { if (r.confirm) wx.openSetting(); } });
+            } else {
+              wx.showToast({ title: '保存失败', icon: 'none' });
+            }
+            reject(err);
+          }
+        });
+      });
+      this.hideLayoutPanel();
+    } catch (e) {
+      wx.hideLoading();
+      wx.showToast({ title: '保存失败', icon: 'none' });
     }
   },
 

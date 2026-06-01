@@ -9,3 +9,4 @@ dist
 unpackage
 debug.log
 __pycache__/
+backend/config.php

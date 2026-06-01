@@ -1,0 +1,119 @@
+<navigation-bar title="链接解析" back="{{true}}" color="black" background="#FFF"></navigation-bar>
+
+<view class="page">
+  <!-- 使用次数 -->
+  <view class="usage-bar" wx:if="{{remainingUses >= 0}}">
+    <text class="usage-text">今日剩余解析次数: {{remainingUses}} 次</text>
+    <text class="usage-redeem" bindtap="showRedeemModal" wx:if="{{remainingUses === 0}}">去增加</text>
+  </view>
+
+  <!-- 输入区 -->
+  <view class="input-card">
+    <textarea
+      class="url-input"
+      placeholder="黏贴分享内容或链接"
+      placeholder-class="input-placeholder"
+      value="{{inputUrl}}"
+      bindinput="onInput"
+      auto-height
+      maxlength="-1">
+    </textarea>
+
+    <view class="input-actions">
+      <text class="link-btn" bindtap="pasteLink">粘贴</text>
+      <text class="link-btn" wx:if="{{inputUrl}}" bindtap="clearInput">清空</text>
+    </view>
+
+    <view
+      class="submit-btn {{!inputUrl || loading ? 'disabled' : ''}}"
+      bindtap="parseLink">
+      <text wx:if="{{loading}}" class="loading-dot"></text>
+      <text>{{loading ? '解析中' : '开始解析'}}</text>
+    </view>
+  </view>
+
+  <!-- 错误提示 -->
+  <view wx:if="{{errorMsg}}" class="error-toast">
+    <text>{{errorMsg}}</text>
+    <text class="error-close" bindtap="clearError">×</text>
+  </view>
+
+  <!-- 空状态 -->
+  <view wx:if="{{!parsed && !loading && !errorMsg}}" class="empty-hint">
+    <view class="empty-icon">🎬</view>
+  </view>
+
+  <!-- 加载状态 -->
+  <view wx:if="{{loading}}" class="loading-card">
+    <view class="skeleton cover-skeleton"></view>
+    <view class="skeleton-line w60"></view>
+    <view class="skeleton-line w40"></view>
+  </view>
+
+  <!-- 解析结果 -->
+  <view wx:if="{{parsed && !loading}}" class="result-card">
+    <!-- 封面图 -->
+    <image
+      wx:if="{{coverUrl && !coverError}}"
+      class="cover-image"
+      src="{{coverUrl}}"
+      mode="aspectFill"
+      binderror="onCoverError"
+      lazy-load>
+    </image>
+    <view wx:elif="{{coverUrl && coverError}}" class="cover-fallback">
+      <text class="fallback-icon">🎬</text>
+      <text class="fallback-text">封面加载失败</text>
+    </view>
+    <view wx:else class="cover-fallback">
+      <text class="fallback-icon">🎬</text>
+      <text class="fallback-text">暂无封面</text>
+    </view>
+
+    <!-- 视频信息 -->
+    <view class="video-info">
+      <text class="video-title">{{videoTitle || '未知标题'}}</text>
+      <text class="video-author">{{authorName || '未知作者'}}</text>
+    </view>
+
+    <!-- 清晰度 -->
+    <view class="quality-row">
+      <view
+        wx:for="{{['标清', '高清', '超清']}}"
+        wx:key="*this"
+        class="quality-tag {{selectedQuality === item ? 'active' : ''}} {{!videoUrls[item] ? 'unavailable' : ''}}"
+        bindtap="selectQuality"
+        data-quality="{{item}}">
+        {{item}}
+      </view>
+    </view>
+
+    <!-- 下载按钮 -->
+    <view
+      class="download-btn {{downloading ? 'disabled' : ''}}"
+      bindtap="saveToAlbum">
+      <text>{{downloading ? '下载中...' : '保存到相册'}}</text>
+    </view>
+  </view>
+
+  <!-- 底部声明 -->
+  <view class="disclaimer">
+    <text>仅供个人学习研究，禁止商用。内容版权归原作者及平台所有。</text>
+  </view>
+</view>
+
+<!-- 兑换码弹窗 -->
+<page-container show="{{showRedeemModal}}" round position="bottom" bindclickoverlay="hideRedeemModal">
+  <view class="redeem-panel">
+    <view class="panel-header">
+      <text>兑换额外使用次数</text>
+      <view class="close-btn" bindtap="hideRedeemModal">✕</view>
+    </view>
+    <view class="redeem-body">
+      <text class="redeem-desc">解析次数已用完，输入兑换码可增加10次使用机会</text>
+      <input class="redeem-input" placeholder="请输入兑换码" maxlength="20" bindinput="onRedeemInput" />
+      <button class="btn primary redeem-btn" bindtap="doRedeem" loading="{{isRedeeming}}" disabled="{{isRedeeming || !redeemCode}}">兑换</button>
+      <text class="redeem-error" wx:if="{{redeemError}}">{{redeemError}}</text>
+    </view>
+  </view>
+</page-container>

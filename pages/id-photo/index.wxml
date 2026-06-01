@@ -46,7 +46,7 @@
   </view>
 
   <!-- 操作控制区 -->
-  <view class="controls-area safe-area-bottom">
+  <view class="controls-area" style="padding-bottom: {{safeAreaBottom + 20}}rpx">
     <!-- 顶部工具栏 -->
     <view class="toolbar" wx:if="{{tempImagePath}}">
       <view class="tool-item" bindtap="rotateImage">
@@ -90,20 +90,82 @@
       </view>
     </scroll-view>
 
+    <!-- 使用次数 -->
+    <view class="usage-row" wx:if="{{remainingUses >= 0}}">
+      <text class="usage-text">今日AI抠图剩余: {{remainingUses}} 次</text>
+      <text class="usage-redeem" bindtap="showRedeemModal" wx:if="{{remainingUses === 0}}">去增加</text>
+    </view>
+
     <!-- 底部按钮 -->
     <view class="btn-group">
       <button class="btn secondary" bindtap="chooseImage" wx:if="{{tempImagePath}}">换一张</button>
-      <button class="btn secondary" bindtap="saveToLocal" disabled="{{!tempImagePath}}">保存到本地</button>
       <button class="btn primary" bindtap="savePhoto" disabled="{{!tempImagePath}}">生成保存</button>
     </view>
+    <button class="btn layout-btn" wx:if="{{tempImagePath}}" bindtap="showLayoutPrint" disabled="{{layoutGenerating}}">6寸排版打印</button>
   </view>
   
   <!-- 历史记录入口 (浮窗或抽屉) -->
   <view class="history-btn" bindtap="showHistory">历史</view>
 </view>
 
+<!-- 6寸排版弹窗 -->
+<page-container show="{{showLayoutPanel}}" round position="bottom" bindclickoverlay="hideLayoutPanel">
+  <view class="layout-panel">
+    <view class="panel-header">
+      <text>6寸相纸排版</text>
+      <view class="close-btn" bindtap="hideLayoutPanel">✕</view>
+    </view>
+    <view class="layout-body">
+      <view class="layout-preview-wrap">
+        <image class="layout-preview" src="{{layoutPreviewUrl}}" mode="aspectFit" wx:if="{{layoutPreviewUrl}}"></image>
+        <view class="layout-preview-empty" wx:else>
+          <text>生成预览中...</text>
+        </view>
+      </view>
+      <view class="layout-info">
+        <text class="layout-desc">{{layoutTotal}} 张 / 6寸相纸 (102×152mm)</text>
+      </view>
+      <view class="layout-controls">
+        <view class="layout-ctrl-item">
+          <text class="ctrl-label">行数</text>
+          <view class="ctrl-group">
+            <view class="ctrl-btn" bindtap="adjustLayoutRows" data-delta="-1">−</view>
+            <text class="ctrl-val">{{layoutRows}}</text>
+            <view class="ctrl-btn" bindtap="adjustLayoutRows" data-delta="1">+</view>
+          </view>
+        </view>
+        <view class="layout-ctrl-item">
+          <text class="ctrl-label">列数</text>
+          <view class="ctrl-group">
+            <view class="ctrl-btn" bindtap="adjustLayoutCols" data-delta="-1">−</view>
+            <text class="ctrl-val">{{layoutCols}}</text>
+            <view class="ctrl-btn" bindtap="adjustLayoutCols" data-delta="1">+</view>
+          </view>
+        </view>
+      </view>
+      <button class="btn primary" bindtap="saveLayoutPhoto">保存到相册</button>
+    </view>
+  </view>
+</page-container>
+
+<!-- 兑换码弹窗 -->
+<page-container show="{{showRedeemModal}}" round position="bottom" bindclickoverlay="hideRedeemModal">
+  <view class="redeem-panel">
+    <view class="panel-header">
+      <text>兑换额外使用次数</text>
+      <view class="close-btn" bindtap="hideRedeemModal">✕</view>
+    </view>
+    <view class="redeem-body">
+      <text class="redeem-desc">今日AI抠图次数已用完，输入兑换码可增加10次使用机会</text>
+      <input class="redeem-input" placeholder="请输入兑换码" maxlength="20" bindinput="onRedeemInput" />
+      <button class="btn primary redeem-btn" bindtap="doRedeem" loading="{{isRedeeming}}" disabled="{{isRedeeming || !redeemCode}}">兑换</button>
+      <text class="redeem-error" wx:if="{{redeemError}}">{{redeemError}}</text>
+    </view>
+  </view>
+</page-container>
+
 <!-- 历史记录弹窗 -->
-<page-container show="{{showHistoryPanel}}" round position="bottom" bind:clickoverlay="hideHistory">
+<page-container show="{{showHistoryPanel}}" round position="bottom" bindclickoverlay="hideHistory">
   <view class="history-panel">
     <view class="panel-header">
       <text>最近生成</text>

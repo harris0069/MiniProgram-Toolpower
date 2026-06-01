@@ -8,27 +8,32 @@ page {
 
 .container {
   flex: 1;
+  min-height: 0;
   display: flex;
   flex-direction: column;
   padding: 0;
   position: relative;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
 }
 
 .guide-tip {
   text-align: center;
-  font-size: 24rpx;
-  color: var(--text-sub);
-  padding: 20rpx 0;
+  font-size: 22rpx;
+  color: var(--sub-text-color);
+  padding: 12rpx 0;
+  line-height: 1.4;
 }
 
 /* 预览区 */
 .preview-area {
   flex: 1;
+  min-height: 0;
   display: flex;
   justify-content: center;
   align-items: center;
   background: #f0f0f0;
-  margin: 20rpx 40rpx;
+  margin: 12rpx 24rpx;
   border-radius: var(--radius-lg);
   overflow: hidden;
   position: relative;
@@ -41,6 +46,8 @@ page {
   overflow: hidden;
   background: #fff;
   transition: all 0.3s ease;
+  max-width: 100%;
+  max-height: 100%;
 }
 
 .photo-canvas {
@@ -96,7 +103,7 @@ page {
   position: absolute;
   top: 20rpx;
   left: 20rpx;
-  background: rgba(26, 95, 74, 0.9);
+  background: rgba(22, 119, 255, 0.9);
   color: #fff;
   padding: 8rpx 20rpx;
   border-radius: 30rpx;
@@ -156,10 +163,10 @@ page {
 
 /* 操作区 */
 .controls-area {
+  flex-shrink: 0;
   background: #fff;
   border-radius: var(--radius-lg) var(--radius-lg) 0 0;
-  padding: 30rpx;
-  padding-bottom: calc(30rpx + env(safe-area-inset-bottom));
+  padding: 20rpx 30rpx;
   box-shadow: 0 -4rpx 20rpx rgba(0,0,0,0.05);
   z-index: 10;
 }
@@ -167,8 +174,8 @@ page {
 .toolbar {
   display: flex;
   justify-content: space-around;
-  margin-bottom: 30rpx;
-  padding-bottom: 20rpx;
+  margin-bottom: 16rpx;
+  padding-bottom: 12rpx;
   border-bottom: 2rpx solid #f5f5f5;
 }
 
@@ -177,7 +184,7 @@ page {
   flex-direction: column;
   align-items: center;
   font-size: 24rpx;
-  color: var(--text-main);
+  color: var(--text-color);
 }
 
 .tool-icon {
@@ -187,7 +194,7 @@ page {
 
 .tabs {
   display: flex;
-  margin-bottom: 30rpx;
+  margin-bottom: 16rpx;
   border-bottom: 2rpx solid #f0f0f0;
 }
 
@@ -196,7 +203,7 @@ page {
   text-align: center;
   padding: 20rpx 0;
   font-size: 28rpx;
-  color: var(--text-sub);
+  color: var(--sub-text-color);
   position: relative;
 }
 
@@ -219,8 +226,8 @@ page {
 .options-scroll {
   display: flex;
   white-space: nowrap;
-  margin-bottom: 30rpx;
-  height: 160rpx;
+  margin-bottom: 16rpx;
+  height: 140rpx;
 }
 
 .option-card {
@@ -228,8 +235,8 @@ page {
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  width: 180rpx;
-  height: 140rpx;
+  width: 160rpx;
+  height: 120rpx;
   background: #f9f9f9;
   margin-right: 20rpx;
   border-radius: var(--radius-md);
@@ -238,7 +245,7 @@ page {
 }
 
 .option-card.active {
-  background: rgba(26, 95, 74, 0.05);
+  background: rgba(22, 119, 255, 0.05);
   border-color: var(--primary-color);
   color: var(--primary-color);
 }
@@ -278,38 +285,101 @@ page {
   text-shadow: 0 2rpx 4rpx rgba(0,0,0,0.2);
 }
 
-.btn-group {
-  display: flex;
-  gap: 20rpx;
-  flex-wrap: wrap;
-}
-
 .btn {
   height: 88rpx;
   line-height: 88rpx;
   border-radius: var(--radius-md);
   font-size: 30rpx;
   border: none;
+  padding: 0;
+  text-align: center;
 }
 
-.btn-group .btn.secondary:first-child {
-  flex: 0 0 calc(33.33% - 14rpx);
+.btn-group {
+  display: flex;
+  gap: 20rpx;
 }
 
-.btn-group .btn.secondary:nth-child(2) {
-  flex: 0 0 calc(33.33% - 14rpx);
+.btn-group .btn.secondary {
+  flex: 1;
 }
 
-.btn.primary {
-  flex: 0 0 calc(33.33% - 14rpx);
+.btn-group .btn.primary {
+  flex: 2;
   background: var(--primary-color);
   color: #fff;
-  box-shadow: 0 4rpx 12rpx rgba(26, 95, 74, 0.3);
+  box-shadow: 0 4rpx 12rpx rgba(22, 119, 255, 0.3);
 }
 
 .btn.secondary {
   background: #f5f5f5;
   color: #666;
+}
+
+/* 使用次数提示 */
+.usage-row {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12rpx;
+  margin-bottom: 20rpx;
+  font-size: 24rpx;
+}
+.usage-text {
+  color: var(--sub-text-color);
+}
+.usage-redeem {
+  color: var(--primary-color);
+  text-decoration: underline;
+}
+
+/* 兑换码弹窗 */
+.redeem-panel {
+  padding: 30rpx;
+  background: #fff;
+  min-height: 300rpx;
+}
+.redeem-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20rpx 0;
+}
+.redeem-desc {
+  font-size: 26rpx;
+  color: #666;
+  text-align: center;
+  margin-bottom: 30rpx;
+  line-height: 1.6;
+}
+.redeem-input {
+  width: 100%;
+  height: 88rpx;
+  border: 2rpx solid #e0e0e0;
+  border-radius: var(--radius-md);
+  padding: 0 24rpx;
+  font-size: 32rpx;
+  text-align: center;
+  letter-spacing: 8rpx;
+  margin-bottom: 20rpx;
+  box-sizing: border-box;
+}
+.redeem-input:focus {
+  border-color: var(--primary-color);
+}
+.redeem-btn {
+  width: 100%;
+  margin-top: 10rpx;
+}
+.redeem-error {
+  color: #ff4d4f;
+  font-size: 24rpx;
+  margin-top: 16rpx;
+}
+.close-btn {
+  padding: 10rpx;
+  font-size: 32rpx;
+  color: #999;
 }
 
 .history-btn {
@@ -322,7 +392,111 @@ page {
   font-size: 24rpx;
   box-shadow: 0 4rpx 12rpx rgba(0,0,0,0.1);
   z-index: 100;
-  color: var(--text-main);
+  color: var(--text-color);
+}
+
+.layout-btn {
+  width: 100%;
+  margin-top: 16rpx;
+  background: #fff;
+  color: var(--text-color);
+  border: 2rpx solid var(--border-color);
+}
+
+/* Layout Panel */
+.layout-panel {
+  padding: 30rpx;
+  background: #fff;
+}
+
+.layout-body {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
+.layout-preview-wrap {
+  width: 260rpx;
+  height: 360rpx;
+  background: #f5f5f5;
+  border-radius: var(--radius-md);
+  overflow: hidden;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 20rpx;
+  box-shadow: 0 4rpx 16rpx rgba(0,0,0,0.08);
+}
+
+.layout-preview {
+  width: 100%;
+  height: 100%;
+}
+
+.layout-preview-empty {
+  font-size: 24rpx;
+  color: #999;
+}
+
+.layout-info {
+  margin-bottom: 24rpx;
+}
+
+.layout-desc {
+  font-size: 26rpx;
+  color: var(--sub-text-color);
+}
+
+.layout-controls {
+  display: flex;
+  gap: 40rpx;
+  margin-bottom: 30rpx;
+}
+
+.layout-ctrl-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 12rpx;
+}
+
+.ctrl-label {
+  font-size: 26rpx;
+  color: var(--sub-text-color);
+}
+
+.ctrl-group {
+  display: flex;
+  align-items: center;
+  gap: 20rpx;
+}
+
+.ctrl-btn {
+  width: 60rpx;
+  height: 60rpx;
+  border-radius: 50%;
+  background: var(--primary-color);
+  color: #fff;
+  font-size: 36rpx;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  line-height: 1;
+}
+
+.ctrl-btn:active {
+  opacity: 0.7;
+}
+
+.ctrl-val {
+  font-size: 36rpx;
+  font-weight: 600;
+  min-width: 60rpx;
+  text-align: center;
+}
+
+.layout-body .btn.primary {
+  width: 100%;
 }
 
 /* History Panel */
