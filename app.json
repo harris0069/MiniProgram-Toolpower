@@ -12,7 +12,8 @@
     "pages/anniversary/create",
     "pages/anniversary/detail",
     "pages/wheel-decision/index",
-    "pages/link-parse/index"
+    "pages/link-parse/index",
+    "pages/poster/index"
   ],
   "window": {
     "navigationBarTextStyle": "black",

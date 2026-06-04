@@ -1,0 +1,11 @@
+<navigation-bar
+  title="一键海报"
+  statusBarHeight="{{statusBarHeight}}"
+  navBarHeight="{{navBarHeight}}"
+  bind:back="navigateBack"
+></navigation-bar>
+
+<view class="page-placeholder">
+  <text class="placeholder-icon">🖼️</text>
+  <text class="placeholder-text">节日海报功能即将上线</text>
+</view>

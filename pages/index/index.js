@@ -79,6 +79,13 @@ Page({
         page: 'link-parse',
         emoji: '🎬',
         bgColor: 'linear-gradient(135deg, #A8D8EA 0%, #C4E0F0 100%)'
+      },
+      {
+        id: 'poster',
+        name: '一键海报',
+        page: 'poster',
+        emoji: '🖼️',
+        bgColor: 'linear-gradient(135deg, #FFE4B5 0%, #FFDAB9 100%)'
       }
     ]
   },
