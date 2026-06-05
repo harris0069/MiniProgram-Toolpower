@@ -14,7 +14,7 @@
   <view class="scene-grid">
     <view 
       class="scene-card" 
-      wx:for="{{scenes}}" 
+      wx:for="{{displayScenes}}" 
       wx:key="id"
       bindtap="enterScene" 
       data-id="{{item.id}}"

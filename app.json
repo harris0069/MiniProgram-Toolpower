@@ -13,7 +13,8 @@
     "pages/anniversary/detail",
     "pages/wheel-decision/index",
     "pages/link-parse/index",
-    "pages/poster/index"
+    "pages/poster/index",
+    "pages/watermark-eraser/index"
   ],
   "window": {
     "navigationBarTextStyle": "black",

@@ -1,11 +1,167 @@
 <navigation-bar
-  title="一键海报"
+  title="{{mode === 'category' ? '一键海报' : mode === 'entry' ? currentEntry.entryName : selectedTemplate.name}}"
   statusBarHeight="{{statusBarHeight}}"
   navBarHeight="{{navBarHeight}}"
-  bind:back="navigateBack"
+  delta="{{0}}"
+  bind:back="onBack"
 ></navigation-bar>
 
-<view class="page-placeholder">
-  <text class="placeholder-icon">🖼️</text>
-  <text class="placeholder-text">节日海报功能即将上线</text>
+<!-- 分类页 -->
+<view wx:if="{{mode === 'category'}}" class="page">
+  <view class="category-tabs">
+    <view class="cat-tab {{categoryTab === '全部' ? 'active' : ''}}" bindtap="onCategoryTab" data-cat="全部">全部</view>
+    <view class="cat-tab {{categoryTab === '节假日' ? 'active' : ''}}" bindtap="onCategoryTab" data-cat="节假日">节假日</view>
+    <view class="cat-tab {{categoryTab === '节气' ? 'active' : ''}}" bindtap="onCategoryTab" data-cat="节气">24节气</view>
+  </view>
+
+  <scroll-view class="entry-grid" scroll-y>
+    <view class="entry-card" wx:for="{{filteredEntries}}" wx:key="entry" bindtap="enterEntry" data-entry="{{item.entry}}">
+      <view class="entry-thumb-placeholder">
+        <text class="entry-emoji">{{item.category === '节气' ? '🌿' : '🎉'}}</text>
+      </view>
+      <text class="entry-name">{{item.entryName}}</text>
+      <text class="entry-count">{{item.templates.length}}个模板</text>
+    </view>
+    <view class="empty-hint" wx:if="{{filteredEntries.length === 0}}">
+      <text>暂无数据</text>
+    </view>
+  </scroll-view>
 </view>
+
+<!-- 模板列表页 -->
+<view wx:elif="{{mode === 'entry'}}" class="page">
+  <scroll-view class="template-grid" scroll-y>
+    <view class="tpl-card" wx:for="{{templates}}" wx:key="id" bindtap="selectTemplate" data-id="{{item.id}}">
+      <view class="tpl-thumb-placeholder">
+        <text class="tpl-emoji">🖼️</text>
+        <view wx:if="{{item.tier === 'premium'}}" class="tpl-lock">
+          <text>🔒</text>
+          <text class="lock-text">待解锁</text>
+        </view>
+      </view>
+      <text class="tpl-name">{{item.name}}</text>
+      <text class="tpl-tier {{item.tier}}">{{item.tier === 'free' ? '免费' : '高级'}}</text>
+    </view>
+  </scroll-view>
+</view>
+
+<!-- 编辑页 -->
+<view wx:elif="{{mode === 'edit'}}" class="page edit-page">
+  <view class="preview-section">
+    <canvas type="2d" id="posterCanvas" class="poster-canvas"
+      bindtouchstart="onTouchStart" bindtouchmove="onTouchMove" bindtouchend="onTouchEnd"
+    ></canvas>
+  </view>
+
+  <view class="edit-tabs">
+    <view class="edit-tab {{editTab === 'logo' ? 'active' : ''}}" bindtap="switchEditTab" data-tab="logo">Logo</view>
+    <view class="edit-tab {{editTab === 'bgcolor' ? 'active' : ''}}" bindtap="switchEditTab" data-tab="bgcolor">背景色</view>
+    <view class="edit-tab {{editTab === 'text' ? 'active' : ''}}" bindtap="switchEditTab" data-tab="text">文字</view>
+  </view>
+
+  <!-- Logo 面板 -->
+  <scroll-view class="edit-panel" scroll-y wx:if="{{editTab === 'logo'}}">
+    <view class="param-group">
+      <button class="upload-btn" bindtap="chooseLogo">{{logoPath ? '更换Logo' : '选择Logo图片'}}</button>
+    </view>
+    <view class="param-group" wx:if="{{logoPath}}">
+      <view class="param-label">缩放：{{logoScalePercent}}%</view>
+      <slider min="10" max="100" value="{{logoScale * 100}}" bindchange="onLogoScale" block-size="28" activeColor="#4A90D9" />
+    </view>
+    <view class="param-group" wx:if="{{logoPath}}">
+      <view class="param-label">快捷位置</view>
+      <view class="quick-positions">
+        <view class="pos-btn" bindtap="quickLogoPosition" data-position="top-left">↖</view>
+        <view class="pos-btn" bindtap="quickLogoPosition" data-position="top-right">↗</view>
+        <view class="pos-btn" bindtap="quickLogoPosition" data-position="center">◉</view>
+        <view class="pos-btn" bindtap="quickLogoPosition" data-position="bottom-left">↙</view>
+        <view class="pos-btn" bindtap="quickLogoPosition" data-position="bottom-right">↘</view>
+      </view>
+    </view>
+  </scroll-view>
+
+  <!-- 背景色面板 -->
+  <scroll-view class="edit-panel" scroll-y wx:elif="{{editTab === 'bgcolor'}}">
+    <view class="param-group">
+      <view class="param-label">选择底色</view>
+      <view class="color-picker">
+        <view class="color-item {{bgColor === '#FF6B6B' ? 'active' : ''}}" style="background:#FF6B6B" bindtap="setBgColor" data-color="#FF6B6B"></view>
+        <view class="color-item {{bgColor === '#4ECDC4' ? 'active' : ''}}" style="background:#4ECDC4" bindtap="setBgColor" data-color="#4ECDC4"></view>
+        <view class="color-item {{bgColor === '#FFD93D' ? 'active' : ''}}" style="background:#FFD93D" bindtap="setBgColor" data-color="#FFD93D"></view>
+        <view class="color-item {{bgColor === '#6C5CE7' ? 'active' : ''}}" style="background:#6C5CE7" bindtap="setBgColor" data-color="#6C5CE7"></view>
+        <view class="color-item {{bgColor === '#A8E6CF' ? 'active' : ''}}" style="background:#A8E6CF" bindtap="setBgColor" data-color="#A8E6CF"></view>
+        <view class="color-item {{bgColor === '#FF8A80' ? 'active' : ''}}" style="background:#FF8A80" bindtap="setBgColor" data-color="#FF8A80"></view>
+        <view class="color-item {{bgColor === '#B388FF' ? 'active' : ''}}" style="background:#B388FF" bindtap="setBgColor" data-color="#B388FF"></view>
+        <view class="color-item {{bgColor === '#82B1FF' ? 'active' : ''}}" style="background:#82B1FF" bindtap="setBgColor" data-color="#82B1FF"></view>
+      </view>
+    </view>
+    <view class="param-group" wx:if="{{bgColor}}">
+      <view class="param-label">不透明度：{{bgOpacity}}%</view>
+      <slider min="10" max="100" value="{{bgOpacity}}" bindchange="onBgOpacity" block-size="28" activeColor="#4A90D9" />
+    </view>
+    <view class="param-group" wx:if="{{bgColor}}">
+      <view class="param-label">羽化范围：{{bgFeather}}%</view>
+      <slider min="0" max="100" value="{{bgFeather}}" bindchange="onBgFeather" block-size="28" activeColor="#4A90D9" />
+    </view>
+  </scroll-view>
+
+  <!-- 文字面板 -->
+  <scroll-view class="edit-panel" scroll-y wx:elif="{{editTab === 'text'}}">
+    <view class="param-group">
+      <button class="upload-btn" bindtap="addText">添加文字</button>
+    </view>
+
+    <view class="text-list" wx:if="{{texts.length > 0}}">
+      <view class="text-list-item" wx:for="{{texts}}" wx:key="key" bindtap="onTextSelect" data-key="{{item.key}}">
+        <text class="text-item-content">{{item.content || '空'}}</text>
+        <text class="text-item-size">{{item.fontSize}}px</text>
+        <view class="text-item-color" style="background:{{item.color}}"></view>
+        <view class="text-item-del" bindtap="deleteText" data-key="{{item.key}}">✕</view>
+      </view>
+    </view>
+
+    <view class="param-group" wx:if="{{currentText}}">
+      <view class="param-label">文字内容</view>
+      <input class="param-input" placeholder="输入文字" value="{{currentText.content}}" data-key="{{currentText.key}}" bindinput="onTextInput" />
+    </view>
+    <view class="param-group" wx:if="{{currentText}}">
+      <view class="param-label">字号：{{currentText.fontSize}}px</view>
+      <slider min="5" max="50" value="{{currentText.fontSize}}" data-key="{{currentText.key}}" bindchange="onTextFontSize" block-size="28" activeColor="#4A90D9" />
+    </view>
+    <view class="param-group" wx:if="{{currentText}}">
+      <view class="param-label">颜色</view>
+      <view class="color-picker">
+        <view class="color-item {{currentText.color === '#ffffff' ? 'active' : ''}}" style="background:#ffffff;border:1rpx solid #ddd" bindtap="onTextColor" data-key="{{currentText.key}}" data-color="#ffffff"></view>
+        <view class="color-item {{currentText.color === '#000000' ? 'active' : ''}}" style="background:#000000" bindtap="onTextColor" data-key="{{currentText.key}}" data-color="#000000"></view>
+        <view class="color-item {{currentText.color === '#FF6B6B' ? 'active' : ''}}" style="background:#FF6B6B" bindtap="onTextColor" data-key="{{currentText.key}}" data-color="#FF6B6B"></view>
+        <view class="color-item {{currentText.color === '#FFD93D' ? 'active' : ''}}" style="background:#FFD93D" bindtap="onTextColor" data-key="{{currentText.key}}" data-color="#FFD93D"></view>
+        <view class="color-item {{currentText.color === '#4ECDC4' ? 'active' : ''}}" style="background:#4ECDC4" bindtap="onTextColor" data-key="{{currentText.key}}" data-color="#4ECDC4"></view>
+        <view class="color-item {{currentText.color === '#6C5CE7' ? 'active' : ''}}" style="background:#6C5CE7" bindtap="onTextColor" data-key="{{currentText.key}}" data-color="#6C5CE7"></view>
+      </view>
+    </view>
+  </scroll-view>
+
+  <view class="bottom-bar">
+    <view class="bottom-btn primary {{!used && !previewMode && !saving ? '' : 'disabled'}}" bindtap="saveToAlbum">
+      <text>{{saving ? '生成中...' : '保存到相册'}}</text>
+    </view>
+    <view class="bottom-hint" wx:if="{{used}}">
+      <text>本周已使用，下周再来</text>
+    </view>
+  </view>
+</view>
+
+<!-- 解锁弹窗 -->
+<page-container show="{{unlockModal}}" round position="bottom" bindclickoverlay="closeUnlock">
+  <view class="unlock-panel">
+    <view class="panel-header">
+      <text>模板待解锁</text>
+      <view class="close-btn" bindtap="closeUnlock">✕</view>
+    </view>
+    <view class="panel-body">
+      <text class="unlock-desc">{{unlockMsg}}</text>
+      <button class="btn preview-btn" bindtap="previewTemplate">预览模板</button>
+      <button class="btn close-btn2" bindtap="closeUnlock">知道了</button>
+    </view>
+  </view>
+</page-container>

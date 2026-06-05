@@ -186,6 +186,7 @@ const SCENES = [
   {
     id: 'lolita',
     name: 'Lolita',
+    hidden: true,
     icon: '🎀',
     desc: '今天穿哪一套小裙子',
     ui: {
@@ -221,6 +222,7 @@ Page({
   data: {
     mode: 'list',
     scenes: SCENES,
+    displayScenes: SCENES.filter(s => !s.hidden),
 
     currentScene: SCENES[0],
     currentOptions: [],

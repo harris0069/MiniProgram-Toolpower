@@ -86,6 +86,13 @@ Page({
         page: 'poster',
         emoji: '🖼️',
         bgColor: 'linear-gradient(135deg, #FFE4B5 0%, #FFDAB9 100%)'
+      },
+      {
+        id: 'watermark-eraser',
+        name: '拂去虚纹',
+        page: 'watermark-eraser',
+        emoji: '🧽',
+        bgColor: 'linear-gradient(135deg, #E0BBE4 0%, #D5AAFF 100%)'
       }
     ]
   },
