@@ -83,6 +83,7 @@ Page({
   },
 
   onLoad() {
+    this.checkFeatureEnabled();
     const info = wx.getWindowInfo();
     const navH = (info.statusBarHeight || 0) + 44;
     this.setData({
@@ -97,6 +98,19 @@ Page({
       this.setData({ editPageHeight: res.windowHeight - navH2 });
     };
     wx.onWindowResize(this._onResize);
+  },
+
+  async checkFeatureEnabled() {
+    try {
+      const res = await UsageControl.featureFlag('poster');
+      if (!res.enabled) {
+        const msg = res.message || '功能暂不可用';
+        wx.showToast({ title: msg, icon: 'none', duration: 2000 });
+        setTimeout(() => wx.navigateBack(), 2000);
+      }
+    } catch (e) {
+      console.warn('[Poster] 获取功能开关失败', e);
+    }
   },
 
   onShow() {

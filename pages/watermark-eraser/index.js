@@ -1,6 +1,7 @@
 const API_BASE = 'https://xcx.huangyiling.top/api';
 const MAX_MASK_DIM = 1600;
 const { checkImage } = require('../../utils/security.js');
+const UsageControl = require('../../utils/usageControl.js');
 
 Page({
   data: {
@@ -35,11 +36,25 @@ Page({
   imageNaturalH: 0,
 
   onLoad() {
+    this.checkFeatureEnabled();
     const info = wx.getWindowInfo();
     this.setData({
       statusBarHeight: info.statusBarHeight || 0,
       navBarHeight: (info.statusBarHeight || 0) + 44,
     });
+  },
+
+  async checkFeatureEnabled() {
+    try {
+      const res = await UsageControl.featureFlag('watermark-eraser');
+      if (!res.enabled) {
+        const msg = res.message || '功能暂不可用';
+        wx.showToast({ title: msg, icon: 'none', duration: 2000 });
+        setTimeout(() => wx.navigateBack(), 2000);
+      }
+    } catch (e) {
+      console.warn('[Watermark Eraser] 获取功能开关失败', e);
+    }
   },
 
   // === Select ===

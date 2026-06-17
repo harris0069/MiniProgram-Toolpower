@@ -2,13 +2,23 @@
 // Receives JSON: {image:base64, strokes:[{size, points:[{x,y}]}], natural_w, natural_h, img_w, img_h}
 // Generates mask from strokes using GD, forwards to Docker OpenCV
 
+require_once __DIR__ . '/../config.php';
+
 $input = json_decode(file_get_contents('php://input'), true);
 
 if (!$input || empty($input['image']) || empty($input['strokes'])) {
-    http_response_code(400);
-    header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'message' => '缺少图片或笔触数据']);
-    exit;
+    jsonResponse(['success' => false, 'message' => '缺少图片或笔触数据'], 400);
+}
+
+// 检查功能开关
+$configPath = __DIR__ . '/../config/usage_config.json';
+if (file_exists($configPath)) {
+    $config = json_decode(file_get_contents($configPath), true);
+    $toolConfig = $config['watermark-eraser'] ?? null;
+    if ($toolConfig && isset($toolConfig['feature_enabled']) && !$toolConfig['feature_enabled']) {
+        $msg = $toolConfig['feature_message'] ?: '功能暂不可用';
+        jsonResponse(['success' => false, 'message' => $msg], 403);
+    }
 }
 
 $imgB64  = $input['image'];

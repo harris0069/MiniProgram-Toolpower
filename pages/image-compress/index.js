@@ -1,4 +1,5 @@
 const { checkImage } = require('../../utils/security.js');
+const UsageControl = require('../../utils/usageControl.js');
 Page({
   data: {
     // 原图信息
@@ -25,7 +26,20 @@ Page({
   compressTimer: null,
 
   onLoad() {
-    // 页面加载完成
+    this.checkFeatureEnabled();
+  },
+
+  async checkFeatureEnabled() {
+    try {
+      const res = await UsageControl.featureFlag('image-compress');
+      if (!res.enabled) {
+        const msg = res.message || '功能暂不可用';
+        wx.showToast({ title: msg, icon: 'none', duration: 2000 });
+        setTimeout(() => wx.navigateBack(), 2000);
+      }
+    } catch (e) {
+      console.warn('[Image Compress] 获取功能开关失败', e);
+    }
   },
 
   onReady() {

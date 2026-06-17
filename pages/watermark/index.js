@@ -1,5 +1,6 @@
 // 水印工具 - 主页面
 const { checkText, checkImage } = require('../../utils/security.js');
+const UsageControl = require('../../utils/usageControl.js');
 Page({
   data: {
     statusBarHeight: 0,
@@ -79,6 +80,7 @@ Page({
   },
 
   onLoad() {
+    this.checkFeatureEnabled();
     // 获取系统信息
     const systemInfo = wx.getWindowInfo();
     const statusBarHeight = systemInfo.statusBarHeight || 0;
@@ -94,6 +96,19 @@ Page({
     
     // 清空上次的水印记录
     this.clearWatermarkData();
+  },
+
+  async checkFeatureEnabled() {
+    try {
+      const res = await UsageControl.featureFlag('watermark');
+      if (!res.enabled) {
+        const msg = res.message || '功能暂不可用';
+        wx.showToast({ title: msg, icon: 'none', duration: 2000 });
+        setTimeout(() => wx.navigateBack(), 2000);
+      }
+    } catch (e) {
+      console.warn('[Watermark] 获取功能开关失败', e);
+    }
   },
 
   // 初始化 Canvas

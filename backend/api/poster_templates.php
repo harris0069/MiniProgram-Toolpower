@@ -16,6 +16,18 @@ $action = $_GET['action'] ?? $input['action'] ?? 'entries';
 $catalogFile = __DIR__ . '/../../backend/templates/catalog.json';
 $imagesDir = __DIR__ . '/../../backend/templates/images/';
 
+// 检查海报功能开关（非管理员操作时）
+if ($action === 'entries') {
+    $configPath = __DIR__ . '/../config/usage_config.json';
+    if (file_exists($configPath)) {
+        $cfg = json_decode(file_get_contents($configPath), true);
+        $tCfg = $cfg['poster'] ?? null;
+        if ($tCfg && isset($tCfg['feature_enabled']) && !$tCfg['feature_enabled']) {
+            jsonResponse(['success' => true, 'entries' => []]);
+        }
+    }
+}
+
 function loadCatalog() {
     global $catalogFile;
     if (!file_exists($catalogFile)) return [];
