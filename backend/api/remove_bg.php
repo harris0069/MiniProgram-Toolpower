@@ -1,7 +1,7 @@
 <?php
 
-require_once '../config.php';
-require_once 'usage_helper.php';
+require_once __DIR__ . '/../config.php';
+require_once __DIR__ . '/usage_helper.php';
 
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST, OPTIONS');
@@ -17,6 +17,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
 }
 
 try {
+    set_time_limit(120);
     writeLog('INFO', '收到人像分割请求');
 
     $input = json_decode(file_get_contents('php://input'), true);
@@ -35,7 +36,7 @@ try {
     ]);
 
     // 检查每日使用限制
-    $remaining = getRemaining($openid);
+    $remaining = getRemaining($openid, 'id-photo');
     if ($remaining <= 0) {
         throw new Exception('今日AI抠图次数已用完，请明日再试或输入兑换码增加次数');
     }
@@ -68,8 +69,8 @@ try {
     ]);
 
     // 扣减使用次数
-    incrementUsage($openid);
-    $remainingAfter = getRemaining($openid);
+    incrementUsage($openid, 'id-photo');
+    $remainingAfter = getRemaining($openid, 'id-photo');
 
     jsonResponse([
         'success' => true,

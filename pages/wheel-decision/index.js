@@ -675,14 +675,4 @@ Page({
     this.stopParticles();
   },
 
-  onShareAppMessage() {
-    return {
-      title: '转盘决策 - 选择困难症的救星',
-      path: '/pages/wheel-decision/index',
-    };
-  },
-
-  onShareTimeline() {
-    return { title: '转盘决策 - 选择困难症的救星' };
-  },
 });

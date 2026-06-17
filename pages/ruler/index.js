@@ -601,18 +601,4 @@ Page({
     }
   },
 
-  // 分享配置
-  onShareAppMessage() {
-    return {
-      title: '尺子工具 - 随时随地测量',
-      path: '/pages/ruler/index',
-      imageUrl: ''
-    };
-  },
-
-  onShareTimeline() {
-    return {
-      title: '尺子工具 - 随时随地测量'
-    };
-  }
 });

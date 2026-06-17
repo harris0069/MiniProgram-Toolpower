@@ -1,4 +1,5 @@
 // 水印工具 - 主页面
+const { checkText, checkImage } = require('../../utils/security.js');
 Page({
   data: {
     statusBarHeight: 0,
@@ -343,7 +344,7 @@ Page({
       canSave: this.data.hasImage && value.length > 0
     });
     this.drawCanvas();
-    this.saveParams();
+    
   },
 
   // 字号调节
@@ -353,7 +354,7 @@ Page({
       'textWatermark.fontSize': value
     });
     this.drawCanvas();
-    this.saveParams();
+    
   },
 
   // 透明度调节
@@ -363,7 +364,7 @@ Page({
       'textWatermark.opacity': value
     });
     this.drawCanvas();
-    this.saveParams();
+    
   },
 
   // 旋转角度调节
@@ -373,7 +374,7 @@ Page({
       'textWatermark.rotation': value
     });
     this.drawCanvas();
-    this.saveParams();
+    
   },
 
   // 设置文字旋转角度（快捷按钮）
@@ -383,7 +384,7 @@ Page({
       'textWatermark.rotation': angle
     });
     this.drawCanvas();
-    this.saveParams();
+    
   },
 
   // 设置文字颜色
@@ -393,7 +394,7 @@ Page({
       'textWatermark.color': color
     });
     this.drawCanvas();
-    this.saveParams();
+    
   },
 
   // 添加一行文字
@@ -430,7 +431,7 @@ Page({
     });
     
     this.drawCanvas();
-    this.saveParams();
+    
   },
 
   // 多行文字输入
@@ -443,7 +444,7 @@ Page({
     });
     
     this.drawCanvas();
-    this.saveParams();
+    
   },
 
   // 多行文字字号调节
@@ -456,7 +457,7 @@ Page({
     });
     
     this.drawCanvas();
-    this.saveParams();
+    
   },
 
   // 绘制图片水印
@@ -500,24 +501,15 @@ Page({
     ctx.restore();
   },
 
-  // 选择水印图
-  chooseWatermarkImage() {
-    wx.chooseImage({
-      count: 1,
-      sizeType: ['original'],
-      sourceType: ['album'],
-      success: (res) => {
-        const tempFilePath = res.tempFilePaths[0];
-        this.loadWatermarkImage(tempFilePath);
-      },
-      fail: (err) => {
-        console.error('选择水印图失败:', err);
-        wx.showToast({
-          title: '选择图片失败',
-          icon: 'none'
-        });
-      }
+  async chooseWatermarkImage() {
+    const res = await new Promise((resolve) => {
+      wx.chooseImage({ count: 1, sizeType: ['original'], sourceType: ['album'], success: resolve, fail: () => resolve(null) });
     });
+    if (!res) return;
+    const tempFilePath = res.tempFilePaths[0];
+    const imgOk = await checkImage(tempFilePath);
+    if (!imgOk.pass) { wx.showToast({ title: imgOk.errMsg, icon: 'none' }); return; }
+    this.loadWatermarkImage(tempFilePath);
   },
 
   // 加载水印图
@@ -545,7 +537,7 @@ Page({
       
       wx.hideLoading();
       this.drawCanvas();
-      this.saveParams();
+      
       
       wx.showToast({
         title: '水印图加载成功',
@@ -574,7 +566,7 @@ Page({
       'imageWatermark.scale': value
     });
     this.drawCanvas();
-    this.saveParams();
+    
   },
 
   // 图片水印透明度
@@ -584,7 +576,7 @@ Page({
       'imageWatermark.opacity': value
     });
     this.drawCanvas();
-    this.saveParams();
+    
   },
 
   // 图片水印旋转
@@ -594,7 +586,7 @@ Page({
       'imageWatermark.rotation': value
     });
     this.drawCanvas();
-    this.saveParams();
+    
   },
 
   // 绘制平铺水印
@@ -690,7 +682,7 @@ Page({
       'tiledWatermark.mode': mode
     });
     this.drawCanvas();
-    this.saveParams();
+    
   },
 
   // 平铺文字输入
@@ -701,7 +693,7 @@ Page({
       canSave: this.data.hasImage && value.length > 0
     });
     this.drawCanvas();
-    this.saveParams();
+    
   },
 
   // 行间距调节
@@ -711,7 +703,7 @@ Page({
       'tiledWatermark.rowGap': value
     });
     this.drawCanvas();
-    this.saveParams();
+    
   },
 
   // 列间距调节
@@ -721,7 +713,7 @@ Page({
       'tiledWatermark.colGap': value
     });
     this.drawCanvas();
-    this.saveParams();
+    
   },
 
   // 平铺旋转角度
@@ -731,7 +723,7 @@ Page({
       'tiledWatermark.rotation': value
     });
     this.drawCanvas();
-    this.saveParams();
+    
   },
 
   // 设置平铺旋转角度（快捷按钮）
@@ -741,7 +733,7 @@ Page({
       'tiledWatermark.rotation': angle
     });
     this.drawCanvas();
-    this.saveParams();
+    
   },
 
   // 切换水印类型
@@ -752,23 +744,15 @@ Page({
   },
 
   // 选择图片
-  chooseImage() {
-    wx.chooseImage({
-      count: 1,
-      sizeType: ['original', 'compressed'],
-      sourceType: ['album', 'camera'],
-      success: (res) => {
-        const tempFilePath = res.tempFilePaths[0];
-        this.loadImage(tempFilePath);
-      },
-      fail: (err) => {
-        console.error('选择图片失败:', err);
-        wx.showToast({
-          title: '选择图片失败',
-          icon: 'none'
-        });
-      }
+  async chooseImage() {
+    const res = await new Promise((resolve) => {
+      wx.chooseImage({ count: 1, sizeType: ['original', 'compressed'], sourceType: ['album', 'camera'], success: resolve, fail: () => resolve(null) });
     });
+    if (!res) return;
+    const tempFilePath = res.tempFilePaths[0];
+    const imgOk = await checkImage(tempFilePath);
+    if (!imgOk.pass) { wx.showToast({ title: imgOk.errMsg, icon: 'none' }); return; }
+    this.loadImage(tempFilePath);
   },
 
   // 加载图片
@@ -987,60 +971,13 @@ Page({
       this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
     }
     
-    // 清空本地存储的参数
-    try {
-      wx.removeStorageSync('watermark_params');
-    } catch (err) {
-      console.error('清空参数失败:', err);
-    }
-  },
-
-  // 加载参数
-  loadParams() {
-    try {
-      const params = wx.getStorageSync('watermark_params');
-      if (params) {
-        // 恢复参数
-        this.setData({
-          watermarkType: params.type || 'text',
-          textWatermark: params.text || this.data.textWatermark,
-          imageWatermark: params.image || this.data.imageWatermark,
-          tiledWatermark: params.tiled || this.data.tiledWatermark,
-          watermarkPosition: params.position || this.data.watermarkPosition
-        });
-      }
-    } catch (err) {
-      console.error('加载参数失败:', err);
-    }
-  },
-
-  // 保存参数（防抖）
-  saveParams() {
+    // 清理定时器
     if (this.saveTimer) {
       clearTimeout(this.saveTimer);
+      this.saveTimer = null;
     }
-    
-    this.saveTimer = setTimeout(() => {
-      try {
-        const params = {
-          type: this.data.watermarkType,
-          text: this.data.textWatermark,
-          image: {
-            path: this.data.imageWatermark.path,
-            scale: this.data.imageWatermark.scale,
-            rotation: this.data.imageWatermark.rotation,
-            opacity: this.data.imageWatermark.opacity
-          },
-          tiled: this.data.tiledWatermark,
-          position: this.data.watermarkPosition
-        };
-        
-        wx.setStorageSync('watermark_params', params);
-      } catch (err) {
-        console.error('保存参数失败:', err);
-      }
-    }, 500);
   },
+
 
   // ========== 模块五：自由拖拽定位 ==========
   
@@ -1131,7 +1068,7 @@ Page({
         currentPosition: ''
       });
       this.drawCanvas();
-      this.saveParams();
+      
     }
     
     if (this.data.isZooming) {
@@ -1233,7 +1170,7 @@ Page({
     });
     
     this.drawCanvas();
-    this.saveParams();
+    
     
     wx.showToast({
       title: '位置已调整',
@@ -1450,6 +1387,11 @@ Page({
           success: resolve, fail: reject,
         });
       });
+      const textContent = [textWatermark.content, ...(textWatermark.lines || []).map(l => l.content), tiledWatermark.textContent].filter(Boolean).join('');
+      const textOk = await checkText(textContent);
+      if (!textOk.pass) { wx.hideLoading(); wx.showToast({ title: textOk.errMsg, icon: 'none' }); return; }
+      const imgOk = await checkImage(tmp.tempFilePath);
+      if (!imgOk.pass) { wx.hideLoading(); wx.showToast({ title: imgOk.errMsg, icon: 'none' }); return; }
       this.saveImageToAlbum(tmp.tempFilePath);
     } catch (e) {
       wx.hideLoading();
@@ -1544,18 +1486,13 @@ Page({
     });
   },
 
-  // 分享配置
-  onShareAppMessage() {
-    return {
-      title: '水印工具 - 轻松添加水印',
-      path: '/pages/watermark/index',
-      imageUrl: ''
-    };
+  // 页面卸载 - 清空所有数据
+  onUnload() {
+    this.clearWatermarkData();
   },
 
-  onShareTimeline() {
-    return {
-      title: '水印工具 - 轻松添加水印'
-    };
+  // 页面隐藏 - 返回首页时清空
+  onHide() {
+    this.clearWatermarkData();
   }
 });

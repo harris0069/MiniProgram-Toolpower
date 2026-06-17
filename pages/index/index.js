@@ -1,4 +1,5 @@
 const API_BASE = 'https://xcx.huangyiling.top/api';
+const UsageControl = require('../../utils/usageControl.js');
 
 Page({
   data: {
@@ -9,6 +10,8 @@ Page({
     isManaging: false,
     featureFlags: {},
     flagsLoaded: false,
+    showNicknamePrompt: false,
+    pendingPage: '',
     tools: [
       {
         id: 'calendar',
@@ -59,13 +62,13 @@ Page({
         emoji: '⚖️',
         bgColor: 'linear-gradient(135deg, #98FB98 0%, #B0FFA8 100%)'
       },
-      {
-        id: 'anniversary',
-        name: '纪念日',
-        page: 'anniversary',
-        emoji: '💝',
-        bgColor: 'linear-gradient(135deg, #FFB6D9 0%, #FFC9E3 100%)'
-      },
+      // {
+      //   id: 'anniversary',
+      //   name: '纪念日',
+      //   page: 'anniversary',
+      //   emoji: '💝',
+      //   bgColor: 'linear-gradient(135deg, #FFB6D9 0%, #FFC9E3 100%)'
+      // },
       {
         id: 'wheel-decision',
         name: '转盘决策',
@@ -117,17 +120,13 @@ Page({
 
   async fetchFeatureFlags() {
     try {
-      const res = await new Promise((resolve, reject) => {
-        wx.request({
-          url: API_BASE + '/feature_flags.php',
-          timeout: 5000,
-          success: resolve,
-          fail: reject
-        });
-      });
-      if (res.data && res.data.success) {
-        this.setData({ featureFlags: res.data.flags });
+      const tools = ['link_parse'];
+      const flags = {};
+      for (const tool of tools) {
+        const res = await UsageControl.featureFlag(tool);
+        flags[tool] = res.enabled;
       }
+      this.setData({ featureFlags: flags });
     } catch (e) {
       console.warn('[Index] 获取功能开关失败', e);
     }
@@ -155,11 +154,61 @@ Page({
   // 导航到工具页面
   navigateToTool(e) {
     const page = e.currentTarget.dataset.page;
-    
+    const today = this._todayStr();
+
+    // 已经弹过昵称并且今天已跳过 → 直接跳转
+    if (wx.getStorageSync('_nickname_prompt_date') === today) {
+      this._doNavigate(page);
+      return;
+    }
+
+    this.setData({pendingPage: page, showNicknamePrompt: true});
+  },
+
+  _doNavigate(page) {
     wx.navigateTo({
       url: page.includes('/') ? `/pages/${page}` : `/pages/${page}/index`
     });
   },
+
+  _todayStr() {
+    const d = new Date();
+    return `${d.getFullYear()}-${String(d.getMonth()+1).padStart(2,'0')}-${String(d.getDate()).padStart(2,'0')}`;
+  },
+
+  // 昵称输入确认
+  onNicknameChange(e) {
+    const nickname = e.detail.value || '';
+    const page = this.data.pendingPage;
+    this.setData({showNicknamePrompt: false});
+
+    // 记录今天已弹过
+    wx.setStorageSync('_nickname_prompt_date', this._todayStr());
+
+    if (nickname) {
+      // 上报昵称
+      wx.setStorageSync('user_nickname', nickname);
+      const openid = wx.getStorageSync('openid') || '';
+      wx.request({
+        url: `${API_BASE}/usage_control.php?action=setNickname`,
+        method: 'POST',
+        data: { openid, nickname },
+        fail: () => {}
+      });
+    }
+
+    this._doNavigate(page);
+  },
+
+  // 跳过昵称
+  skipNickname() {
+    const page = this.data.pendingPage;
+    this.setData({showNicknamePrompt: false});
+    wx.setStorageSync('_nickname_prompt_date', this._todayStr());
+    this._doNavigate(page);
+  },
+
+  preventMove() {},
 
   // 长按常用工具 - 移除收藏
   onFavoriteLongPress(e) {
@@ -285,18 +334,4 @@ Page({
     }
   },
 
-  // 分享配置
-  onShareAppMessage() {
-    return {
-      title: '实用工具箱 - 你的生活小助手',
-      path: '/pages/index/index',
-      imageUrl: ''
-    };
-  },
-
-  onShareTimeline() {
-    return {
-      title: '实用工具箱 - 你的生活小助手'
-    };
-  }
 });

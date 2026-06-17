@@ -310,7 +310,7 @@ Page({
 
   // 返回首页
   goBack() {
-    wx.switchTab({
+    wx.reLaunch({
       url: '/pages/index/index'
     });
   }

@@ -1,4 +1,5 @@
 // 纪念日工具 - 新建/编辑页面 V1.0.2
+const { checkText } = require('../../utils/security.js');
 Page({
   data: {
     statusBarHeight: 0,
@@ -289,10 +290,13 @@ Page({
   },
 
   // 保存纪念日
-  saveAnniversary() {
+  async saveAnniversary() {
     if (!this.data.canSubmit) {
       return;
     }
+    
+    const textOk = await checkText(this.data.name + this.data.remark);
+    if (!textOk.pass) { wx.showToast({ title: textOk.errMsg, icon: 'none' }); return; }
     
     try {
       const now = Date.now();

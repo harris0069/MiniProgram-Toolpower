@@ -63,23 +63,24 @@ class ApiClient {
    */
   static async base64ToFile(base64Data) {
     return new Promise((resolve, reject) => {
-      // 移除数据URL前缀
       const base64 = base64Data.replace(/^data:image\/\w+;base64,/, '');
-      
       const fs = wx.getFileSystemManager();
-      const fileName = `processed_${Date.now()}.png`;
-      const filePath = `${wx.env.USER_DATA_PATH}/${fileName}`;
-      
+      const dir = wx.env.USER_DATA_PATH;
+      const filePath = `${dir}/processed_current.png`;
+      try {
+        const files = fs.readdirSync(dir);
+        files.forEach(f => {
+          if (f.startsWith('processed_')) {
+            try { fs.unlinkSync(`${dir}/${f}`); } catch(e) {}
+          }
+        });
+      } catch(e) {}
       fs.writeFile({
         filePath: filePath,
         data: base64,
         encoding: 'base64',
-        success: () => {
-          resolve(filePath);
-        },
-        fail: (error) => {
-          reject(new Error('保存文件失败: ' + error.errMsg));
-        }
+        success: () => resolve(filePath),
+        fail: (error) => reject(new Error('保存文件失败: ' + error.errMsg))
       });
     });
   }
@@ -181,47 +182,6 @@ class ApiClient {
       return 'temp_' + Date.now() + '_' + Math.random().toString(36).substr(2);
     }
   }
-  
-  /**
-   * 查询当日剩余使用次数
-   */
-  static async checkUsage(openid) {
-    return await this.request('/api/check_usage.php', {
-      method: 'POST',
-      data: { openid },
-    });
-  }
-
-  /**
-   * 兑换码兑换
-   */
-  static async redeemCode(openid, code) {
-    return await this.request('/api/redeem.php', {
-      method: 'POST',
-      data: { openid, code },
-    });
-  }
-
-  /**
-   * 查询链接解析当日剩余使用次数
-   */
-  static async checkLinkUsage(openid) {
-    return await this.request('/api/check_usage.php', {
-      method: 'POST',
-      data: { openid, tool: 'link_parse' },
-    });
-  }
-
-  /**
-   * 链接解析兑换码
-   */
-  static async redeemLinkCode(openid, code) {
-    return await this.request('/api/redeem.php', {
-      method: 'POST',
-      data: { openid, code, tool: 'link_parse' },
-    });
-  }
-
   /**
    * 重试机制
    * @param {Function} fn 要重试的函数

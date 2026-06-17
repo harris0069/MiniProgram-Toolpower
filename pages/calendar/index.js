@@ -726,20 +726,4 @@ Page({
     this.setData({ calendarMode: 'solar' });
   },
 
-  // 分享配置
-  onShareAppMessage() {
-    const { year, month, day } = this.data.selectedDate;
-    return {
-      title: `万年历 - ${year}年${month}月${day}日`,
-      path: '/pages/calendar/index',
-      imageUrl: ''
-    };
-  },
-
-  onShareTimeline() {
-    const { year, month, day } = this.data.selectedDate;
-    return {
-      title: `万年历 - ${year}年${month}月${day}日`
-    };
-  }
 });

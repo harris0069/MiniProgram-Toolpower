@@ -1,6 +1,14 @@
 <?php
+/**
+ * @deprecated 已废弃，请使用 usage_control.php?action=redeem
+ * 保留此文件仅作兼容，新老前端均已迁移至新 unified 接口。
+ */
+http_response_code(410);
+header('Content-Type: application/json; charset=utf-8');
+echo json_encode(['success' => false, 'error' => '此接口已废弃，请使用新接口'], JSON_UNESCAPED_UNICODE);
+exit;
 
-require_once 'usage_helper.php';
+// --- 以下为旧实现，不再执行 ---
 
 header('Access-Control-Allow-Origin: *');
 header('Access-Control-Allow-Methods: POST, OPTIONS');

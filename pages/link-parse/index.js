@@ -1,5 +1,7 @@
 // 链接解析工具 - 简化版
 const API_BASE = 'https://xcx.huangyiling.top/api';
+const { checkText } = require('../../utils/security.js');
+const UsageControl = require('../../utils/usageControl.js');
 
 Page({
   data: {
@@ -29,16 +31,9 @@ Page({
 
   async checkFeatureEnabled() {
     try {
-      const res = await new Promise((resolve, reject) => {
-        wx.request({
-          url: API_BASE + '/feature_flags.php',
-          timeout: 5000,
-          success: resolve,
-          fail: reject
-        });
-      });
-      if (res.data && res.data.success && res.data.flags.link_parse === false) {
-        const msg = res.data.flags.link_parse_message || '功能暂不可用';
+      const res = await UsageControl.featureFlag('link_parse');
+      if (!res.enabled) {
+        const msg = res.message || '功能暂不可用';
         wx.showToast({ title: msg, icon: 'none', duration: 2000 });
         setTimeout(() => wx.navigateBack(), 2000);
         return;
@@ -153,9 +148,7 @@ Page({
    */
   async fetchUsage() {
     try {
-      const ApiClient = require('../../utils/apiClient.js');
-      const openid = await ApiClient.getOpenId();
-      const res = await ApiClient.checkLinkUsage(openid);
+      const res = await UsageControl.check('link_parse');
       this.setData({ remainingUses: res.remaining });
     } catch (e) {
       console.warn('[Link Parse] 获取使用次数失败', e);
@@ -181,9 +174,7 @@ Page({
     this.setData({ isRedeeming: true, redeemError: '' });
 
     try {
-      const ApiClient = require('../../utils/apiClient.js');
-      const openid = await ApiClient.getOpenId();
-      const res = await ApiClient.redeemLinkCode(openid, code);
+      const res = await UsageControl.redeem('link_parse', code);
 
       wx.showToast({ title: res.message || '兑换成功', icon: 'success' });
       this.setData({
@@ -215,6 +206,9 @@ Page({
       });
       return;
     }
+
+    const textOk = await checkText(this.data.inputUrl);
+    if (!textOk.pass) { this.setData({ loading: false }); wx.showToast({ title: textOk.errMsg, icon: 'none' }); return; }
 
     this.setData({ 
       loading: true, 
@@ -379,17 +373,4 @@ Page({
     });
   },
 
-  // 分享配置
-  onShareAppMessage() {
-    return {
-      title: '链接解析工具 - 快速解析抖音视频',
-      path: '/pages/link-parse/index'
-    };
-  },
-
-  onShareTimeline() {
-    return {
-      title: '链接解析工具 - 快速解析抖音视频'
-    };
-  }
 });

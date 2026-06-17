@@ -1,5 +1,6 @@
 const API_BASE = 'https://xcx.huangyiling.top/api';
 const MAX_MASK_DIM = 1600;
+const { checkImage } = require('../../utils/security.js');
 
 Page({
   data: {
@@ -8,6 +9,7 @@ Page({
     mode: 'select',
     brushSize: 20,
     processing: false,
+    progressText: '',
     resultPath: '',
     canvasReady: false,
   },
@@ -18,6 +20,7 @@ Page({
   canvas: null,
   ctx: null,
   bgImage: null,
+  resultImage: null,
   imgWidth: 0,
   imgHeight: 0,
   imgPath: '',
@@ -41,17 +44,19 @@ Page({
 
   // === Select ===
 
-  chooseImage() {
-    wx.chooseImage({
-      count: 1,
-      sizeType: ['original'],
-      success: (res) => {
-        this.imgPath = res.tempFilePaths[0];
-        this.segments = [];
-        this.setData({ mode: 'edit', canvasReady: false });
-        wx.nextTick(() => this.initCanvas());
-      },
+  async chooseImage() {
+    const res = await new Promise((resolve) => {
+      wx.chooseImage({ count: 1, sizeType: ['original'], success: resolve, fail: () => resolve(null) });
     });
+    if (!res) return;
+    const path = res.tempFilePaths[0];
+    const imgOk = await checkImage(path);
+    if (!imgOk.pass) { wx.showToast({ title: imgOk.errMsg, icon: 'none' }); return; }
+    this.imgPath = path;
+    this.segments = [];
+    this.resultImage = null;
+    this.setData({ mode: 'edit', canvasReady: false });
+    wx.nextTick(() => this.initCanvas());
   },
 
   // === Canvas ===
@@ -140,12 +145,6 @@ Page({
         this.ctx.lineTo(seg.points[i].x, seg.points[i].y);
       }
       this.ctx.stroke();
-      // Draw circles at each point to fill gaps
-      for (const p of seg.points) {
-        this.ctx.beginPath();
-        this.ctx.arc(p.x, p.y, seg.size / 2, 0, Math.PI * 2);
-        this.ctx.fill();
-      }
     }
   },
 
@@ -153,14 +152,32 @@ Page({
 
   getCanvasXY(e) {
     const touch = e.touches[0];
+    // Use clientX/clientY (viewport-relative) → same system as boundingClientRect
+    const cx = touch.clientX !== undefined ? touch.clientX : touch.x;
+    const cy = touch.clientY !== undefined ? touch.clientY : touch.y;
     return {
-      x: touch.x - this.canvasLeft,
-      y: touch.y - this.canvasTop,
+      x: cx - this.canvasLeft,
+      y: cy - this.canvasTop,
     };
   },
 
   onTouchStart(e) {
-    if (!this.data.canvasReady || this.data.processing) return;
+    if (this.data.processing || !this.data.canvasReady) return;
+
+    // Result mode → long-press compare
+    if (this.data.mode === 'result') {
+      this._lpTimer = setTimeout(() => {
+        this._showingOriginal = true;
+        this._lpTimer = null;
+        const cw = this.canvas.width / this.dpr;
+        const ch = this.canvas.height / this.dpr;
+        this.ctx.clearRect(0, 0, cw, ch);
+        this.ctx.drawImage(this.bgImage, this.drawX, this.drawY, this.drawW, this.drawH);
+      }, 400);
+      return;
+    }
+
+    if (this.data.mode !== 'edit') return;
     const p = this.getCanvasXY(e);
     this.isDrawing = true;
     this.currentSegment = {
@@ -171,7 +188,18 @@ Page({
   },
 
   onTouchMove(e) {
-    if (!this.isDrawing || this.data.processing) return;
+    if (this.data.processing) return;
+
+    // Result mode → cancel long-press if finger dragged before timer fires
+    if (this.data.mode === 'result') {
+      if (this._lpTimer) {
+        clearTimeout(this._lpTimer);
+        this._lpTimer = null;
+      }
+      return;
+    }
+
+    if (!this.isDrawing || this.data.mode !== 'edit') return;
     const p = this.getCanvasXY(e);
     this.currentSegment.points.push(p);
 
@@ -180,20 +208,29 @@ Page({
     ctx.lineJoin = 'round';
     ctx.lineWidth = this.currentSegment.size;
     ctx.strokeStyle = 'rgba(255,0,0,0.55)';
-    ctx.fillStyle = 'rgba(255,0,0,0.55)';
     const pts = this.currentSegment.points;
-    // Draw line segment
     ctx.beginPath();
     ctx.moveTo(pts[pts.length - 2].x, pts[pts.length - 2].y);
     ctx.lineTo(p.x, p.y);
     ctx.stroke();
-    // Draw circle at current point to fill gaps
-    ctx.beginPath();
-    ctx.arc(p.x, p.y, this.currentSegment.size / 2, 0, Math.PI * 2);
-    ctx.fill();
+
   },
 
   onTouchEnd() {
+    // Result mode → restore result if showing original
+    if (this._lpTimer) {
+      clearTimeout(this._lpTimer);
+      this._lpTimer = null;
+    }
+    if (this._showingOriginal) {
+      this._showingOriginal = false;
+      const cw = this.canvas.width / this.dpr;
+      const ch = this.canvas.height / this.dpr;
+      this.ctx.clearRect(0, 0, cw, ch);
+      this.ctx.drawImage(this.resultImage, this.drawX, this.drawY, this.drawW, this.drawH);
+      return;
+    }
+
     this.isDrawing = false;
     this.currentSegment = null;
   },
@@ -234,87 +271,71 @@ Page({
       return;
     }
 
-    this.setData({ processing: true });
-    wx.showLoading({ title: '去除中...' });
+    this.setData({ processing: true, progressText: '上传中...' });
 
     try {
       const ow = this.imgWidth;
       const oh = this.imgHeight;
+      const fs = wx.getFileSystemManager();
 
-      // Mask offscreen canvas at limited resolution
-      const maskCanvas = wx.createOffscreenCanvas({ type: '2d', width: ow, height: oh });
-      const mctx = maskCanvas.getContext('2d');
-      mctx.fillStyle = '#000000';
-      mctx.fillRect(0, 0, ow, oh);
-
-      mctx.lineCap = 'round';
-      mctx.lineJoin = 'round';
+      // Collect stroke data in image coordinates
+      const strokes = [];
       for (const seg of this.segments) {
         if (seg.points.length < 2) continue;
-        const first = this.canvasToImage(seg.points[0].x, seg.points[0].y);
-        mctx.beginPath();
-        mctx.lineWidth = seg.size * (ow / this.drawW);
-        mctx.strokeStyle = '#ffffff';
-        mctx.moveTo(first.x, first.y);
-        for (let i = 1; i < seg.points.length; i++) {
-          const p = this.canvasToImage(seg.points[i].x, seg.points[i].y);
-          mctx.lineTo(p.x, p.y);
-        }
-        mctx.stroke();
-        // Fill circles at each point
-        mctx.fillStyle = '#ffffff';
-        for (const p of seg.points) {
-          const cp = this.canvasToImage(p.x, p.y);
-          mctx.beginPath();
-          mctx.arc(cp.x, cp.y, seg.size * (ow / this.drawW) / 2, 0, Math.PI * 2);
-          mctx.fill();
-        }
+        const points = seg.points.map(p => this.canvasToImage(p.x, p.y));
+        strokes.push({
+          size: seg.size * (ow / this.drawW),
+          points,
+        });
       }
 
-      // Export mask
-      const maskRes = await new Promise((resolve, reject) => {
-        wx.canvasToTempFilePath({
-          canvas: maskCanvas,
-          fileType: 'png',
-          success: resolve,
-          fail: reject,
-        });
-      });
+      this.setData({ progressText: '处理中...' });
+      const imageBase64 = fs.readFileSync(this.imgPath, 'base64');
 
-      // Upload
-      const result = await this.uploadImage(maskRes.tempFilePath, {
-        imagePath: this.imgPath,
+      const result = await this.uploadImage(imageBase64, strokes, {
         naturalW: this.imageNaturalW,
         naturalH: this.imageNaturalH,
+        imgW: ow,
+        imgH: oh,
       });
 
-      this.setData({ resultPath: result, mode: 'result', processing: false });
-      wx.hideLoading();
+      this.setData({ progressText: '下载中...', resultPath: result });
+
+      // Draw result on canvas at same position as original
+      const resultImg = this.canvas.createImage();
+      resultImg.onload = () => {
+        this.resultImage = resultImg;
+        const cw = this.canvas.width / this.dpr;
+        const ch = this.canvas.height / this.dpr;
+        this.ctx.clearRect(0, 0, cw, ch);
+        this.ctx.drawImage(resultImg, this.drawX, this.drawY, this.drawW, this.drawH);
+        this.setData({ mode: 'result', processing: false });
+      };
+      resultImg.src = result;
     } catch (e) {
-      wx.hideLoading();
       this.setData({ processing: false });
       wx.showToast({ title: '处理失败，请重试', icon: 'none' });
       console.error(e);
     }
   },
 
-  uploadImage(maskPath, opts) {
+  uploadImage(imgB64, strokes, opts) {
     return new Promise((resolve, reject) => {
-      // Read files as base64
       const fs = wx.getFileSystemManager();
-      const imgB64 = fs.readFileSync(opts.imagePath, 'base64');
-      const maskB64 = fs.readFileSync(maskPath, 'base64');
+      const body = JSON.stringify({
+        image: imgB64,
+        strokes: strokes,
+        natural_w: opts.naturalW,
+        natural_h: opts.naturalH,
+        img_w: opts.imgW,
+        img_h: opts.imgH,
+      });
 
       wx.request({
         url: API_BASE + '/remove_watermark.php',
         method: 'POST',
         header: { 'content-type': 'application/json' },
-        data: JSON.stringify({
-          image: imgB64,
-          mask: maskB64,
-          natural_w: opts.naturalW,
-          natural_h: opts.naturalH,
-        }),
+        data: body,
         timeout: 120000,
         responseType: 'arraybuffer',
         enableHttp2: true,
@@ -338,9 +359,18 @@ Page({
     });
   },
 
-  // === Save & Navigation ===
+  // === Result actions ===
 
-  saveToAlbum() {
+  redoEdit() {
+    this.segments = [];
+    this.resultImage = null;
+    this.clearAndRedraw();
+    this.setData({ mode: 'edit', resultPath: '' });
+  },
+
+  async saveToAlbum() {
+    const imgOk = await checkImage(this.data.resultPath);
+    if (!imgOk.pass) { wx.showToast({ title: imgOk.errMsg, icon: 'none' }); return; }
     wx.saveImageToPhotosAlbum({
       filePath: this.data.resultPath,
       success: () => wx.showToast({ title: '已保存', icon: 'success' }),
@@ -361,6 +391,7 @@ Page({
   startOver() {
     this.segments = [];
     this.bgImage = null;
+    this.resultImage = null;
     this.imgPath = '';
     this.canvas = null;
     this.ctx = null;
@@ -377,12 +408,11 @@ Page({
       if (pages.length > 1) {
         wx.navigateBack();
       } else {
-        wx.switchTab({ url: '/pages/index/index' });
+        wx.reLaunch({ url: '/pages/index/index' });
       }
     }
   },
 
-  onShareAppMessage() {
-    return { title: '拂去虚纹 - 涂抹水印区域一键去除', path: '/pages/watermark-eraser/index' };
-  },
+  onUnload() { this.startOver(); },
+  onHide() { this.startOver(); },
 });

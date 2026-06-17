@@ -312,13 +312,13 @@ page {
 /* 颜色选择器 */
 .color-picker {
   display: flex;
-  gap: 20rpx;
-  flex-wrap: wrap;
+  gap: 16rpx;
+  flex-wrap: nowrap;
 }
 
 .color-item {
-  width: 88rpx;
-  height: 88rpx;
+  width: 80rpx;
+  height: 80rpx;
   border-radius: 50%;
   position: relative;
   transition: all 200ms ease-out;

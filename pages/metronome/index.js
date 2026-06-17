@@ -1915,18 +1915,4 @@ WebAudio API：${diagnosis.webAudioSupport.apiExists ? '✅' : '❌'}
     // 
   },
 
-  // 分享配置
-  onShareAppMessage() {
-    return {
-      title: '节拍器 - 音乐练习好帮手',
-      path: '/pages/metronome/index',
-      imageUrl: ''
-    };
-  },
-
-  onShareTimeline() {
-    return {
-      title: '节拍器 - 音乐练习好帮手'
-    };
-  }
 });

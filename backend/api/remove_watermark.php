@@ -1,26 +1,28 @@
 <?php
-// accept_json(): POST with JSON body {image: base64, mask: base64, natural_w, natural_h}
+// Receives JSON: {image:base64, strokes:[{size, points:[{x,y}]}], natural_w, natural_h, img_w, img_h}
+// Generates mask from strokes using GD, forwards to Docker OpenCV
 
 $input = json_decode(file_get_contents('php://input'), true);
 
-if (!$input || empty($input['image']) || empty($input['mask'])) {
+if (!$input || empty($input['image']) || empty($input['strokes'])) {
     http_response_code(400);
     header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'message' => '缺少图片或蒙版']);
+    echo json_encode(['success' => false, 'message' => '缺少图片或笔触数据']);
     exit;
 }
 
 $imgB64  = $input['image'];
-$maskB64 = $input['mask'];
+$strokes = $input['strokes'];
 $natW    = (int)($input['natural_w'] ?? 0);
 $natH    = (int)($input['natural_h'] ?? 0);
+$imgW    = (int)($input['img_w'] ?? 0);
+$imgH    = (int)($input['img_h'] ?? 0);
 
 $imgBin = base64_decode($imgB64, true);
-$maskBin = base64_decode($maskB64, true);
-if ($imgBin === false || $maskBin === false) {
+if ($imgBin === false) {
     http_response_code(400);
     header('Content-Type: application/json');
-    echo json_encode(['success' => false, 'message' => '数据解码失败']);
+    echo json_encode(['success' => false, 'message' => '图片数据解码失败']);
     exit;
 }
 
@@ -31,11 +33,49 @@ if (strlen($imgBin) > 15 * 1024 * 1024) {
     exit;
 }
 
-// Save temp files
-$imgTmp  = tempnam(__DIR__ . '/../data', 'wm_img_');
-$maskTmp = tempnam(__DIR__ . '/../data', 'wm_msk_');
+// Save image temp file
+$imgTmp = tempnam(__DIR__ . '/../data', 'wm_img_');
 file_put_contents($imgTmp, $imgBin);
-file_put_contents($maskTmp, $maskBin);
+
+// Generate mask from strokes using GD
+$maskTmp = tempnam(__DIR__ . '/../data', 'wm_msk_');
+if ($imgW > 0 && $imgH > 0 && function_exists('imagecreatetruecolor')) {
+    $mask = imagecreatetruecolor($imgW, $imgH);
+    $black = imagecolorallocate($mask, 0, 0, 0);
+    $white = imagecolorallocate($mask, 255, 255, 255);
+    imagefill($mask, 0, 0, $black);
+
+    foreach ($strokes as $seg) {
+        $size = max(1, (int)($seg['size'] ?? 1));
+        $points = $seg['points'] ?? [];
+        $cnt = count($points);
+
+        imagesetthickness($mask, $size);
+        for ($i = 1; $i < $cnt; $i++) {
+            imageline($mask,
+                (int)$points[$i-1]['x'], (int)$points[$i-1]['y'],
+                (int)$points[$i]['x'], (int)$points[$i]['y'],
+                $white);
+        }
+
+        imagesetthickness($mask, 1);
+        for ($i = 0; $i < $cnt; $i++) {
+            imagefilledellipse($mask,
+                (int)$points[$i]['x'], (int)$points[$i]['y'],
+                $size, $size,
+                $white);
+        }
+    }
+
+    imagepng($mask, $maskTmp);
+    imagedestroy($mask);
+} else {
+    // Fallback: 1x1 black mask (no removal)
+    $mask = imagecreatetruecolor(1, 1);
+    imagefill($mask, 0, 0, imagecolorallocate($mask, 0, 0, 0));
+    imagepng($mask, $maskTmp);
+    imagedestroy($mask);
+}
 
 // Forward to Docker OpenCV
 $ch = curl_init('http://127.0.0.1:8009/inpaint');
@@ -70,6 +110,5 @@ if ($httpCode !== 200) {
     exit;
 }
 
-// Return raw PNG (status 200)
 header('Content-Type: image/png');
 echo $result;

@@ -250,13 +250,4 @@ Page({
   },
   hideLimit() { this.setData({ showLimitModal: false }); },
   
-  onShareAppMessage() {
-    const title = this.data.bmiResult
-      ? `我的BMI是${this.data.bmiResult}，你的呢？`
-      : 'BMI健康计算器，来测测你的身体状态';
-    return {
-      title,
-      path: '/pages/bmi/index'
-    };
-  }
 })

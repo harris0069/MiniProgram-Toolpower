@@ -108,9 +108,10 @@
   <view class="history-btn" bindtap="showHistory">历史</view>
 </view>
 
-<!-- 6寸排版弹窗 -->
-<page-container show="{{showLayoutPanel}}" round position="bottom" bindclickoverlay="hideLayoutPanel">
-  <view class="layout-panel">
+<!-- 统一弹窗 -->
+<page-container show="{{showLayoutPanel || showRedeemModal || showHistoryPanel}}" round position="bottom" bindclickoverlay="onClosePanel">
+  <!-- 6寸排版弹窗 -->
+  <view class="layout-panel" wx:if="{{showLayoutPanel}}">
     <view class="panel-header">
       <text>6寸相纸排版</text>
       <view class="close-btn" bindtap="hideLayoutPanel">✕</view>
@@ -146,11 +147,8 @@
       <button class="btn primary" bindtap="saveLayoutPhoto">保存到相册</button>
     </view>
   </view>
-</page-container>
-
-<!-- 兑换码弹窗 -->
-<page-container show="{{showRedeemModal}}" round position="bottom" bindclickoverlay="hideRedeemModal">
-  <view class="redeem-panel">
+  <!-- 兑换码弹窗 -->
+  <view class="redeem-panel" wx:if="{{showRedeemModal}}">
     <view class="panel-header">
       <text>兑换额外使用次数</text>
       <view class="close-btn" bindtap="hideRedeemModal">✕</view>
@@ -162,11 +160,8 @@
       <text class="redeem-error" wx:if="{{redeemError}}">{{redeemError}}</text>
     </view>
   </view>
-</page-container>
-
-<!-- 历史记录弹窗 -->
-<page-container show="{{showHistoryPanel}}" round position="bottom" bindclickoverlay="hideHistory">
-  <view class="history-panel">
+  <!-- 历史记录弹窗 -->
+  <view class="history-panel" wx:if="{{showHistoryPanel}}">
     <view class="panel-header">
       <text>最近生成</text>
       <view class="clear-btn" bindtap="clearHistory">清空</view>

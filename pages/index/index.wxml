@@ -72,3 +72,16 @@
     </view>
   </view>
 </view>
+
+<!-- 昵称输入遮罩 -->
+<view wx:if="{{showNicknamePrompt}}" class="nickname-overlay" catchtouchmove="preventMove">
+  <view class="nickname-box">
+    <text class="nickname-icon">👤</text>
+    <text class="nickname-title">设置昵称</text>
+    <text class="nickname-desc">设置昵称后管理后台可以识别您</text>
+    <input type="nickname" class="nickname-input" placeholder="输入您的微信昵称" bindchange="onNicknameChange" />
+    <view class="nickname-actions">
+      <button class="nickname-btn skip" bindtap="skipNickname">跳过</button>
+    </view>
+  </view>
+</view>

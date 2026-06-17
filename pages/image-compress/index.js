@@ -1,3 +1,4 @@
+const { checkImage } = require('../../utils/security.js');
 Page({
   data: {
     // 原图信息
@@ -77,47 +78,24 @@ Page({
   },
 
   // 选择图片
-  selectImage() {
-    const that = this;
-    
-    wx.showActionSheet({
-      itemList: ['从相册选择', '拍照'],
-      success: (res) => {
-        if (typeof res.tapIndex === 'undefined') {
-          return;
-        }
-        
-        const sourceType = res.tapIndex === 0 ? ['album'] : ['camera'];
-        
-        wx.chooseImage({
-          count: 1,
-          sizeType: ['original'],
-          sourceType: sourceType,
-          success: (chooseRes) => {
-            if (chooseRes && chooseRes.tempFilePaths && chooseRes.tempFilePaths.length > 0) {
-              const tempFilePath = chooseRes.tempFilePaths[0];
-              that.loadImage(tempFilePath);
-            } else {
-              wx.showToast({
-                title: '未选择图片',
-                icon: 'none'
-              });
-            }
-          },
-          fail: (err) => {
-            if (err && err.errMsg && err.errMsg.indexOf('cancel') === -1) {
-              wx.showToast({
-                title: '选择图片失败',
-                icon: 'none'
-              });
-            }
-          }
-        });
-      },
-      fail: (err) => {
-        // 用户取消选择
-      }
+  async selectImage() {
+    const sheetRes = await new Promise((resolve) => {
+      wx.showActionSheet({ itemList: ['从相册选择', '拍照'], success: resolve, fail: () => resolve(null) });
     });
+    if (!sheetRes || typeof sheetRes.tapIndex === 'undefined') return;
+    
+    const sourceType = sheetRes.tapIndex === 0 ? ['album'] : ['camera'];
+    const chooseRes = await new Promise((resolve) => {
+      wx.chooseImage({ count: 1, sizeType: ['original'], sourceType, success: resolve, fail: () => resolve(null) });
+    });
+    if (!chooseRes || !chooseRes.tempFilePaths || !chooseRes.tempFilePaths.length) return;
+    
+    const tempFilePath = chooseRes.tempFilePaths[0];
+    const imgOk = await checkImage(tempFilePath);
+    if (!imgOk.pass) { wx.showToast({ title: imgOk.errMsg, icon: 'none' }); return; }
+    
+    this.clearAll();
+    this.loadImage(tempFilePath);
   },
 
   // 加载图片信息
@@ -545,8 +523,17 @@ Page({
     }
   },
 
-  // 重新选择
-  reselect() {
+  // 重置所有图片数据
+  clearAll() {
+    if (this.compressTimer) {
+      clearTimeout(this.compressTimer);
+      this.compressTimer = null;
+    }
+    if (this.canvas && this.ctx) {
+      this.ctx.clearRect(0, 0, this.canvas.width, this.canvas.height);
+      this.canvas.width = 1;
+      this.canvas.height = 1;
+    }
     this.setData({
       originalImage: '',
       originalSize: '',
@@ -557,8 +544,13 @@ Page({
       compressedSize: '',
       compressedBytes: 0,
       compressionRatio: 0,
-      quality: 80  // 重置为默认80%
+      isCompressing: false,
     });
+  },
+
+  // 重新选择
+  reselect() {
+    this.clearAll();
   },
 
   // 保存图片
@@ -651,7 +643,7 @@ Page({
   },
 
   // 执行保存
-  doSaveImage() {
+  async doSaveImage() {
     const { compressedImage } = this.data;
 
     if (!compressedImage) {
@@ -661,6 +653,9 @@ Page({
       });
       return;
     }
+
+    const imgOk = await checkImage(compressedImage);
+    if (!imgOk.pass) { wx.showToast({ title: imgOk.errMsg, icon: 'none' }); return; }
 
     wx.showLoading({
       title: '保存中...',
@@ -728,29 +723,11 @@ Page({
   },
 
   onUnload() {
-    // 清理定时器
-    if (this.compressTimer) {
-      clearTimeout(this.compressTimer);
-      this.compressTimer = null;
-    }
-    
-    // 清理 Canvas 引用
-    this.canvas = null;
-    this.ctx = null;
+    this.clearAll();
   },
 
-  // 分享配置
-  onShareAppMessage() {
-    return {
-      title: '图片压缩工具 - 快速压缩图片',
-      path: '/pages/image-compress/index',
-      imageUrl: ''
-    };
+  onHide() {
+    this.clearAll();
   },
 
-  onShareTimeline() {
-    return {
-      title: '图片压缩工具 - 快速压缩图片'
-    };
-  }
 });

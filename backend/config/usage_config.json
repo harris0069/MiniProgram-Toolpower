@@ -1,0 +1,50 @@
+{
+  "id-photo": {
+    "name": "证件照",
+    "daily_limit": 3,
+    "weekly_limit": 0,
+    "bonus_per_code": 10,
+    "redeem_enabled": true,
+    "feature_enabled": true,
+    "feature_message": ""
+  },
+  "link_parse": {
+    "name": "链接解析",
+    "daily_limit": 10,
+    "weekly_limit": 0,
+    "bonus_per_code": 10,
+    "redeem_enabled": true,
+    "feature_enabled": false,
+    "feature_message": "功能优化中，敬请期待"
+  },
+  "poster": {
+    "name": "一键海报",
+    "daily_limit": 0,
+    "weekly_limit": 1,
+    "bonus_per_code": 0,
+    "redeem_enabled": false,
+    "feature_enabled": true,
+    "feature_message": ""
+  },
+  "watermark": {
+    "name": "水印工具",
+    "daily_limit": 0,
+    "weekly_limit": 0,
+    "feature_enabled": true,
+    "feature_message": ""
+  },
+  "watermark-eraser": {
+    "name": "水印擦除",
+    "daily_limit": 0,
+    "weekly_limit": 0,
+    "feature_enabled": true,
+    "feature_message": ""
+  },
+  "image-compress": {
+    "name": "图片压缩",
+    "daily_limit": 0,
+    "weekly_limit": 0,
+    "feature_enabled": true,
+    "feature_message": ""
+  }
+}

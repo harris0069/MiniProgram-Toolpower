@@ -1,4 +1,6 @@
 const app = getApp();
+const { checkImage } = require('../../utils/security.js');
+const UsageControl = require('../../utils/usageControl.js');
 
 // 常用规格定义
 const SPECS = [
@@ -85,7 +87,7 @@ Page({
 
   onLoad() {
     this.updatePreviewBoxSize(this.data.currentSpec);
-    this.loadHistory();
+    this.setData({ historyList: [] });
     this.fetchUsage();
     // Skyline 可能不支持 env(safe-area-inset-bottom)，通过 JS 计算
     this.applySafeArea();
@@ -244,7 +246,9 @@ Page({
         return;
       }
       
-      // 2. 直接加载原图，保存原始路径
+      const imgOk = await checkImage(tempFilePath);
+      if (!imgOk.pass) { wx.showToast({ title: imgOk.errMsg, icon: 'none' }); return; }
+
       this.setData({ 
         isTransparentBg: false,
         originalImagePath: tempFilePath
@@ -459,7 +463,7 @@ Page({
     try {
       const tempFilePath = await this.generatePhoto();
       await this.saveToAlbum(tempFilePath);
-      this.addToHistory(tempFilePath, this.data.currentSpec.name);
+
     } catch (error) {
       console.error('生成失败', error);
       wx.hideLoading();
@@ -467,7 +471,9 @@ Page({
     }
   },
   
-  saveToAlbum(filePath) {
+  async saveToAlbum(filePath) {
+    const imgOk = await checkImage(filePath);
+    if (!imgOk.pass) { wx.hideLoading(); wx.showToast({ title: imgOk.errMsg, icon: 'none' }); return; }
     wx.saveImageToPhotosAlbum({
       filePath: filePath,
       success: () => {
@@ -492,67 +498,15 @@ Page({
     });
   },
 
-  removeSavedFiles(paths) {
-    const fileSystemManager = wx.getFileSystemManager();
-    (paths || []).filter(Boolean).forEach((filePath) => {
-      try {
-        // 检查文件是否存在
-        const stats = fileSystemManager.statSync(filePath);
-        if (stats) {
-          fileSystemManager.unlinkSync(filePath);
-        }
-      } catch (error) {
-        // 文件可能已被删除或不存在，记录警告但不中断流程
-        console.warn('Remove saved file failed', filePath, error);
-      }
-    });
-  },
-
-  // 历史记录逻辑
-  loadHistory() {
-    const list = wx.getStorageSync('idphoto_history') || [];
-    this.setData({ historyList: list });
-  },
-  
-  addToHistory(path, specName) {
-    wx.getFileSystemManager().saveFile({
-      tempFilePath: path,
-      success: (res) => {
-        const savedPath = res.savedFilePath;
-        const now = new Date();
-        const h = now.getHours().toString().padStart(2, '0');
-        const m = now.getMinutes().toString().padStart(2, '0');
-        const item = {
-          path: savedPath,
-          specName: specName,
-          timestamp: Date.now(),
-          dateStr: now.toLocaleDateString() + ' ' + h + ':' + m
-        };
-
-        let list = [item, ...this.data.historyList];
-        const removedItems = list.length > 3 ? list.slice(3) : [];
-        if (removedItems.length > 0) {
-          this.removeSavedFiles(removedItems.map(historyItem => historyItem.path));
-          list = list.slice(0, 3);
-        }
-
-        this.setData({ historyList: list });
-        wx.setStorageSync('idphoto_history', list);
-      },
-      fail: (error) => {
-        console.error('Save history file failed', error);
-      }
-    });
-  },
-  
   showHistory() { this.setData({ showHistoryPanel: true }); },
   hideHistory() { this.setData({ showHistoryPanel: false }); },
+
+  onClosePanel() {
+    this.setData({ showLayoutPanel: false, showRedeemModal: false, showHistoryPanel: false });
+  },
   
   clearHistory() {
-    this.removeSavedFiles(this.data.historyList.map(item => item.path));
     this.setData({ historyList: [] });
-    wx.removeStorageSync('idphoto_history');
-    // 可选：删除本地文件释放空间
   },
   
   previewHistory(e) {
@@ -568,9 +522,7 @@ Page({
    */
   async fetchUsage() {
     try {
-      const ApiClient = require('../../utils/apiClient.js');
-      const openid = await ApiClient.getOpenId();
-      const res = await ApiClient.checkUsage(openid);
+      const res = await UsageControl.check('id-photo');
       this.setData({ remainingUses: res.remaining });
     } catch (e) {
       console.warn('[ID Photo] 获取使用次数失败', e);
@@ -596,9 +548,7 @@ Page({
     this.setData({ isRedeeming: true, redeemError: '' });
 
     try {
-      const ApiClient = require('../../utils/apiClient.js');
-      const openid = await ApiClient.getOpenId();
-      const res = await ApiClient.redeemCode(openid, code);
+      const res = await UsageControl.redeem('id-photo', code);
 
       wx.showToast({ title: res.message || '兑换成功', icon: 'success' });
       this.setData({
@@ -634,10 +584,10 @@ Page({
     
     try {
       const ApiClient = require('../../utils/apiClient.js');
+      const openid = UsageControl._getOpenId();
 
       // 检查剩余次数
-      const openid = await ApiClient.getOpenId();
-      const usage = await ApiClient.checkUsage(openid);
+      const usage = await UsageControl.check('id-photo');
       if (usage.remaining <= 0) {
         throw new Error('今日AI抠图次数已用完，请明日再试或输入兑换码增加次数');
       }
@@ -863,15 +813,17 @@ Page({
     try {
       const canvas = wx.createOffscreenCanvas({ type: '2d', width: 1200, height: 1800 });
       await this.drawLayoutOnCanvas(canvas, 1);
-      const tempPath = await new Promise((resolve, reject) => {
+      const canvasRes = await new Promise((resolve, reject) => {
         wx.canvasToTempFilePath({
           canvas, fileType: 'jpg', quality: 0.95,
           success: resolve, fail: reject
         });
       });
+      const imgOk = await checkImage(canvasRes.tempFilePath);
+      if (!imgOk.pass) { wx.hideLoading(); wx.showToast({ title: imgOk.errMsg, icon: 'none' }); return; }
       await new Promise((resolve, reject) => {
         wx.saveImageToPhotosAlbum({
-          filePath: tempPath,
+          filePath: canvasRes.tempFilePath,
           success: () => { wx.hideLoading(); wx.showToast({ title: '已保存到相册', icon: 'success' }); resolve(); },
           fail: (err) => {
             wx.hideLoading();
@@ -891,19 +843,18 @@ Page({
     }
   },
 
-  // 分享配置
-  onShareAppMessage() {
-    return {
-      title: '证件照工具 - 快速制作证件照',
-      path: '/pages/id-photo/index',
-      imageUrl: ''
-    };
+  clearAll() {
+    this.setData({
+      backgroundColor: '#FFFFFF',
+      imgWidth: 0, imgHeight: 0,
+      imgX: 0, imgY: 0,
+      imgScale: 1, imgRotate: 0,
+      originalImagePath: null,
+      layoutPreviewUrl: '',
+    });
   },
 
-  onShareTimeline() {
-    return {
-      title: '证件照工具 - 快速制作证件照'
-    };
-  }
+  onUnload() { this.clearAll(); },
+  onHide() { this.clearAll(); },
 })
 

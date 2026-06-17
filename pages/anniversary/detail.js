@@ -135,30 +135,6 @@ Page({
     }
   },
 
-  // 分享纪念日
-  onShareAppMessage() {
-    const item = this.data.anniversary;
-    if (!item) return {};
-    
-    return {
-      title: `${item.name} - ${this.data.countText}`,
-      path: `/pages/anniversary/detail?id=${item.id}`,
-      imageUrl: '' // 可以自定义分享图片
-    };
-  },
-
-  // 分享到朋友圈
-  onShareTimeline() {
-    const item = this.data.anniversary;
-    if (!item) return {};
-    
-    return {
-      title: `${item.name} - ${this.data.countText}`,
-      query: `id=${item.id}`,
-      imageUrl: '' // 可以自定义分享图片
-    };
-  },
-
   // 编辑纪念日
   editAnniversary() {
     if (!this.data.anniversary) return;
