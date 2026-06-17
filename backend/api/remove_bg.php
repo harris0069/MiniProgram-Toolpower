@@ -35,6 +35,17 @@ try {
         'image_size' => strlen($originalImage)
     ]);
 
+    // 检查功能开关
+    $configPath = __DIR__ . '/../config/usage_config.json';
+    if (file_exists($configPath)) {
+        $config = json_decode(file_get_contents($configPath), true);
+        $toolConfig = $config['id-photo'] ?? null;
+        if ($toolConfig && isset($toolConfig['feature_enabled']) && !$toolConfig['feature_enabled']) {
+            $msg = $toolConfig['feature_message'] ?: '功能暂不可用';
+            throw new Exception($msg);
+        }
+    }
+
     // 检查每日使用限制
     $remaining = getRemaining($openid, 'id-photo');
     if ($remaining <= 0) {

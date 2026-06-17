@@ -120,11 +120,11 @@ Page({
 
   async fetchFeatureFlags() {
     try {
-      const tools = ['link_parse'];
+      const tools = ['id-photo', 'link_parse', 'poster', 'watermark', 'watermark-eraser', 'image-compress'];
       const flags = {};
       for (const tool of tools) {
         const res = await UsageControl.featureFlag(tool);
-        flags[tool] = res.enabled;
+        flags[tool.replace(/-/g, '_')] = res.enabled;
       }
       this.setData({ featureFlags: flags });
     } catch (e) {

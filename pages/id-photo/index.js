@@ -86,11 +86,24 @@ Page({
   },
 
   onLoad() {
+    this.checkFeatureEnabled();
     this.updatePreviewBoxSize(this.data.currentSpec);
     this.setData({ historyList: [] });
     this.fetchUsage();
-    // Skyline 可能不支持 env(safe-area-inset-bottom)，通过 JS 计算
     this.applySafeArea();
+  },
+
+  async checkFeatureEnabled() {
+    try {
+      const res = await UsageControl.featureFlag('id-photo');
+      if (!res.enabled) {
+        const msg = res.message || '功能暂不可用';
+        wx.showToast({ title: msg, icon: 'none', duration: 2000 });
+        setTimeout(() => wx.navigateBack(), 2000);
+      }
+    } catch (e) {
+      console.warn('[ID Photo] 获取功能开关失败', e);
+    }
   },
 
   applySafeArea() {
