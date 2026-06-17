@@ -56,6 +56,17 @@ if (!preg_match('/douyin\.com|v\.douyin\.com/i', $url)) {
     jsonResponse(['success' => false, 'message' => '仅支持抖音链接'], 400);
 }
 
+// 检查功能开关
+$configPath = __DIR__ . '/../config/usage_config.json';
+if (file_exists($configPath)) {
+    $cfg = json_decode(file_get_contents($configPath), true);
+    $tc = $cfg['link_parse'] ?? null;
+    if ($tc && isset($tc['feature_enabled']) && !$tc['feature_enabled']) {
+        $msg = $tc['feature_message'] ?: '功能暂不可用';
+        jsonResponse(['success' => false, 'message' => $msg], 403);
+    }
+}
+
 // 使用次数检查
 if ($openid) {
     $remaining = getRemaining($openid, 'link_parse');
