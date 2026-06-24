@@ -112,10 +112,9 @@ function parseDouyinVideo($url) {
             return $result;
         }
     } catch (Exception $e) {
-        writeLog('WARNING', '第三方API失败', ['error' => $e->getMessage()]);
+        writeLog('ERROR', '自部署解析服务失败', ['error' => $e->getMessage()]);
     }
     
-    // 所有解析方法均失败
     throw new Exception('解析失败，请稍后重试');
 }
 
@@ -126,25 +125,13 @@ function callThirdPartyAPI($url) {
     if (!function_exists('curl_init')) {
         throw new Exception('服务器缺少 PHP CURL 扩展，无法调用远程 API');
     }
-    // API列表 - 自部署优先，外部API作为后备
+    // 仅使用自部署解析服务
     $apiList = [
         [
             'url' => 'http://localhost:8088/api/hybrid/video_data',
             'method' => 'GET',
             'data' => ['url' => $url, 'minimal' => false],
             'type' => 'local'
-        ],
-        [
-            'url' => 'https://api.douyin.wtf/api/hybrid/video_data',
-            'method' => 'GET',
-            'data' => ['url' => $url, 'minimal' => false],
-            'type' => 'douyin_wtf'
-        ],
-        [
-            'url' => 'https://api.lolimi.cn/API/dyjx/',
-            'method' => 'GET',
-            'data' => ['url' => $url],
-            'type' => 'lolimi'
         ]
     ];
     
@@ -160,7 +147,7 @@ function callThirdPartyAPI($url) {
         }
     }
     
-    throw new Exception('所有第三方API都不可用');
+    throw new Exception('自部署解析服务不可用');
 }
 
 /**
@@ -338,6 +325,7 @@ function formatLocalApiResponse($videoData) {
     
     return [
         'success' => true,
+        'source' => 'localhost:8088',
         'title' => $videoData['desc'] ?? '未知标题',
         'author' => $videoData['author']['nickname'] ?? '未知作者',
         'cover' => $cover,
