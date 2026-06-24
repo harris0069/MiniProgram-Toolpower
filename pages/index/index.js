@@ -100,6 +100,10 @@ Page({
     ]
   },
 
+  onShareAppMessage() {
+    return { path: '/pages/index/index' };
+  },
+
   onLoad() {
     const systemInfo = wx.getWindowInfo();
     const statusBarHeight = systemInfo.statusBarHeight || 0;
