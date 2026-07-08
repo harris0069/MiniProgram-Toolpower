@@ -16,7 +16,7 @@
     "disableUseStrict": true
   },
   "compileType": "miniprogram",
-  "appid": "wx42222bc7ddc0a4a8",
+  "appid": "YOUR_APPID",
   "libVersion": "2.28.0",
   "condition": {
     "miniprogram": {

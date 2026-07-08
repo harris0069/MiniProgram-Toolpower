@@ -1,5 +1,4 @@
-const API_BASE = 'https://xcx.huangyiling.top/api';
-const IMG_BASE = 'https://xcx.huangyiling.top';
+const { API_BASE, IMG_BASE } = require('../../utils/config');
 const { checkText, checkImage } = require('../../utils/security.js');
 const UsageControl = require('../../utils/usageControl.js');
 

@@ -601,4 +601,9 @@ Page({
     }
   },
 
+  onShareAppMessage() {
+    return { title: '尺子工具 - 随身测量', path: '/pages/ruler/index' };
+  },
+
+
 });

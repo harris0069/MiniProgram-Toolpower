@@ -869,5 +869,10 @@ Page({
 
   onUnload() { this.clearAll(); },
   onHide() { this.clearAll(); },
+
+  onShareAppMessage() {
+    return { title: '证件照制作 - 一键换底色', path: '/pages/id-photo/index' };
+  },
+
 })
 

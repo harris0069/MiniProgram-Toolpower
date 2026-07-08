@@ -313,5 +313,10 @@ Page({
     wx.reLaunch({
       url: '/pages/index/index'
     });
-  }
+  },
+
+  onShareAppMessage() {
+    return { title: '纪念日计算 - 重要日子提醒', path: '/pages/anniversary/index' };
+  },
+
 });

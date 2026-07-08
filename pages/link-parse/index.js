@@ -1,5 +1,5 @@
 // 链接解析工具 - 简化版
-const API_BASE = 'https://xcx.huangyiling.top/api';
+const { API_BASE } = require('../../utils/config');
 const { checkText } = require('../../utils/security.js');
 const UsageControl = require('../../utils/usageControl.js');
 
@@ -16,6 +16,7 @@ Page({
     selectedQuality: '高清',
     videoUrls: {},
     downloading: false,
+    downloadProgress: 0,
 
     // 使用次数
     remainingUses: -1,
@@ -27,6 +28,13 @@ Page({
 
   onLoad() {
     this.checkFeatureEnabled();
+  },
+
+  onUnload() {
+    if (this._downloadTask) {
+      this._downloadTask.abort();
+      this._downloadTask = null;
+    }
   },
 
   async checkFeatureEnabled() {
@@ -309,68 +317,81 @@ Page({
   },
 
   saveToAlbum() {
-    const url = this.data.videoUrls[this.data.selectedQuality];
+    const qualityPriority = ['超清', '高清', '标清'];
+    const url = qualityPriority.reduce((found, q) => found || this.data.videoUrls[q], null);
     if (!url) {
-      wx.showToast({ 
-        title: '视频链接不可用', 
-        icon: 'none' 
-      });
+      wx.showToast({ title: '暂无可用视频', icon: 'none' });
       return;
     }
+    this._trySaveToAlbum(url);
+  },
 
-    wx.showLoading({ title: '正在下载...' });
-    this.setData({ downloading: true });
+  _trySaveToAlbum(url) {
+    this.setData({ downloading: true, downloadProgress: 0 });
+    this._downloadTask = null;
 
-    // 通过代理中转下载，避免微信域名白名单拦截
     const proxyUrl = API_BASE + '/proxy_download.php?url=' + encodeURIComponent(url);
-    wx.downloadFile({
+    const task = wx.downloadFile({
       url: proxyUrl,
       success: (res) => {
-        this.setData({ downloading: false });
-        wx.hideLoading();
-        
-        if (res.statusCode === 200) {
-          wx.saveVideoToPhotosAlbum({
-            filePath: res.tempFilePath,
-            success: () => {
-              wx.showToast({ 
-                title: '已保存到相册', 
-                icon: 'success' 
-              });
-            },
-            fail: (err) => {
-              if (err.errMsg.includes('auth deny')) {
-                wx.showModal({
-                  title: '需要权限',
-                  content: '请在设置中开启相册写入权限',
-                  success: (r) => {
-                    if (r.confirm) wx.openSetting();
-                  }
-                });
-              } else {
-                wx.showToast({ 
-                  title: '保存失败', 
-                  icon: 'none' 
-                });
-              }
-            }
-          });
-        } else {
-          wx.showToast({ 
-            title: '下载失败', 
-            icon: 'none' 
-          });
+        this._downloadTask = null;
+        if (res.statusCode !== 200) {
+          this.setData({ downloading: false, downloadProgress: 0 });
+          wx.showToast({ title: '下载失败', icon: 'none' });
+          return;
         }
-      },
-      fail: () => {
-        this.setData({ downloading: false });
-        wx.hideLoading();
-        wx.showToast({ 
-          title: '网络异常', 
-          icon: 'none' 
+        wx.saveVideoToPhotosAlbum({
+          filePath: res.tempFilePath,
+          success: () => {
+            this.setData({ downloading: false });
+            wx.showToast({ title: '已保存到相册', icon: 'success' });
+          },
+          fail: (err) => {
+            this.setData({ downloading: false });
+            if (err.errMsg.includes('auth deny')) {
+              wx.showModal({
+                title: '需要权限',
+                content: '请在设置中开启相册写入权限',
+                success: (r) => {
+                  if (r.confirm) wx.openSetting();
+                }
+              });
+              return;
+            }
+            wx.showToast({ title: '保存失败', icon: 'none' });
+          }
         });
+      },
+      fail: (err) => {
+        this._downloadTask = null;
+        this.setData({ downloading: false, downloadProgress: 0 });
+        if (err && err.errMsg && err.errMsg.includes('abort')) return;
+        wx.showToast({ title: '下载失败', icon: 'none' });
       }
     });
+    this._downloadTask = task;
+    task.onProgressUpdate((res) => {
+      if (res.progress > 0) {
+        this.setData({ downloadProgress: res.progress });
+      }
+    });
+    setTimeout(() => {
+      if (this.data.downloading && this.data.downloadProgress === 0) {
+        this.setData({ downloadProgress: 1 });
+      }
+    }, 2000);
+  },
+
+  cancelDownload() {
+    if (this._downloadTask) {
+      this._downloadTask.abort();
+      this._downloadTask = null;
+    }
+    this.setData({ downloading: false, downloadProgress: 0 });
+  },
+
+  onShareAppMessage() {
+    return { title: '抖音视频解析 - 无水印下载', path: '/pages/link-parse/index' };
   },
 
 });

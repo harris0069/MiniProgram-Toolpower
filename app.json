@@ -22,7 +22,7 @@
   },
   "networkTimeout": {
     "request": 30000,
-    "downloadFile": 60000
+    "downloadFile": 120000
   },
   "permission": {
     "scope.writePhotosAlbum": {

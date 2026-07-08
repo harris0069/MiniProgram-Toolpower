@@ -675,4 +675,9 @@ Page({
     this.stopParticles();
   },
 
+  onShareAppMessage() {
+    return { title: '决策转盘 - 命运的选择', path: '/pages/wheel-decision/index' };
+  },
+
+
 });

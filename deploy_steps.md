@@ -4,12 +4,12 @@
 
 ```powershell
 # Windows PowerShell
-.\deploy.ps1 -ServerIP "xcx.huangyiling.top" -Username "root"
+.\deploy.ps1 -ServerIP "你的服务器IP" -Username "root"
 ```
 
 ```bash
 # Linux/macOS
-./deploy.sh xcx.huangyiling.top root
+./deploy.sh 你的服务器IP root
 ```
 
 ## 部署内容
@@ -27,10 +27,10 @@
 
 ```bash
 # 健康检查
-curl -s 'https://xcx.huangyiling.top/api/douyin_parse.php?health'
+curl -s 'https://YOUR_DOMAIN/api/douyin_parse.php?health'
 
 # 测试 API
-curl -X POST 'https://xcx.huangyiling.top/api/douyin_parse.php' \
+curl -X POST 'https://YOUR_DOMAIN/api/douyin_parse.php' \
   -H 'Content-Type: application/json' \
   -d '{"url":"https://v.douyin.com/xxxxx","openid":"test"}'
 ```

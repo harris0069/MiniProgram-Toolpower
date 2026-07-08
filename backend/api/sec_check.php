@@ -1,6 +1,5 @@
 <?php
-define('APPID', 'wx42222bc7ddc0a4a8');
-define('APPSECRET', '844c687072e2103ed7ba3d32572fc25f');
+require_once __DIR__ . '/../config.php';
 define('VERSION', '2.1.0');
 
 $input = json_decode(file_get_contents('php://input'), true);

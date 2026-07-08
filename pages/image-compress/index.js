@@ -744,4 +744,9 @@ Page({
     this.clearAll();
   },
 
+  onShareAppMessage() {
+    return { title: '图片压缩 - 无损压缩', path: '/pages/image-compress/index' };
+  },
+
+
 });

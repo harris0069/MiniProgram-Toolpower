@@ -294,9 +294,42 @@
   transform: scale(0.98);
 }
 
-.download-btn.disabled {
-  opacity: 0.4;
-  pointer-events: none;
+.download-btn.cancel {
+  background: #FF4D4F;
+}
+
+.download-btn.cancel:active {
+  opacity: 0.85;
+  transform: scale(0.98);
+}
+
+.quality-progress {
+  display: flex;
+  align-items: center;
+  gap: 16rpx;
+  flex: 1;
+}
+
+.progress-bar {
+  flex: 1;
+  height: 8rpx;
+  background: #E0E0E0;
+  border-radius: 4rpx;
+  overflow: hidden;
+}
+
+.progress-fill {
+  height: 100%;
+  background: #1677FF;
+  border-radius: 4rpx;
+  transition: width 0.3s;
+}
+
+.progress-text {
+  font-size: 26rpx;
+  color: #666;
+  min-width: 60rpx;
+  text-align: center;
 }
 
 /* ===== 底部声明 ===== */

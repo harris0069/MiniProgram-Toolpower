@@ -2,7 +2,7 @@
  * API客户端 - 简化版，适配实际数据库结构
  */
 
-const API_BASE_URL = 'https://xcx.huangyiling.top';
+const { API_BASE_URL } = require('./config');
 
 class ApiClient {
   

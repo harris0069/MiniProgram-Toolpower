@@ -726,4 +726,9 @@ Page({
     this.setData({ calendarMode: 'solar' });
   },
 
+  onShareAppMessage() {
+    return { title: '日历工具 - 日期查询', path: '/pages/calendar/index' };
+  },
+
+
 });

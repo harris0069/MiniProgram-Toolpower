@@ -1,4 +1,5 @@
-const API_BASE = 'https://xcx.huangyiling.top/api';
+const { API_BASE_URL } = require('./config');
+const API_BASE = API_BASE_URL + '/api';
 
 let cachedOpenId = null;
 let openIdPromise = null;

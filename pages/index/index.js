@@ -1,4 +1,4 @@
-const API_BASE = 'https://xcx.huangyiling.top/api';
+const { API_BASE } = require('../../utils/config');
 const UsageControl = require('../../utils/usageControl.js');
 
 Page({
@@ -101,7 +101,7 @@ Page({
   },
 
   onShareAppMessage() {
-    return { path: '/pages/index/index' };
+    return { title: 'Toolpower - 多功能工具箱', path: '/pages/index/index' };
   },
 
   onLoad() {

@@ -1,10 +1,10 @@
 # Toolpower 海报后端部署脚本
 param(
-    [string]$ServerIP = "xcx.huangyiling.top",
+    [string]$ServerIP = "你的服务器IP",
     [string]$Username = "root"
 )
 
-$WebRoot = "/var/www/xcx.huangyiling.top"
+$WebRoot = "/var/www/YOUR_DOMAIN"
 $ApiDir = "$WebRoot/api"
 
 Write-Host "Uploading poster backend to $ServerIP..." -ForegroundColor Green

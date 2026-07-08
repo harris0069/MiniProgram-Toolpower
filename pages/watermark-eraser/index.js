@@ -1,4 +1,4 @@
-const API_BASE = 'https://xcx.huangyiling.top/api';
+const { API_BASE } = require('../../utils/config');
 const MAX_MASK_DIM = 1600;
 const { checkImage } = require('../../utils/security.js');
 const UsageControl = require('../../utils/usageControl.js');
@@ -430,4 +430,9 @@ Page({
 
   onUnload() { this.startOver(); },
   onHide() { this.startOver(); },
+
+  onShareAppMessage() {
+    return { title: 'AI去水印 - 智能擦除', path: '/pages/watermark-eraser/index' };
+  },
+
 });

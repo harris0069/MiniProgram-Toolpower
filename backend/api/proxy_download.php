@@ -5,6 +5,7 @@
  */
 
 require_once __DIR__ . '/../config.php';
+set_time_limit(0);
 
 $url = trim($_GET['url'] ?? '');
 
@@ -19,12 +20,13 @@ if (!$host) {
 }
 
 // 只允许代理视频类 URL（防止被滥用为开放代理）
-$allowedHosts = ['douyin.com', 'douyincdn.com', 'douyinpic.com', 'snssdk.com', 'toutiaoimg.com', 'toutiaostatic.com'];
+$allowedPatterns = ['douyin', 'snssdk', 'toutiao', 'douyincdn', 'douyinpic', 'pstatp', 'ixigua', 'zjcdn'];
 $allowed = false;
-foreach ($allowedHosts as $h) {
-    if (stripos($host, $h) !== false) { $allowed = true; break; }
+foreach ($allowedPatterns as $p) {
+    if (stripos($host, $p) !== false) { $allowed = true; break; }
 }
 if (!$allowed) {
+    writeLog('WARNING', '代理请求被白名单拒绝', ['host' => $host, 'url' => substr($url, 0, 100)]);
     jsonResponse(['success' => false, 'message' => '不支持的来源域名'], 403);
 }
 
@@ -32,18 +34,12 @@ if (!function_exists('curl_init')) {
     jsonResponse(['success' => false, 'message' => '服务器缺少 CURL 扩展'], 500);
 }
 
-// 流式转发，不缓冲全部内容到内存
-header('Content-Type: video/mp4');
-header('Access-Control-Allow-Origin: *');
-// 禁用 Nginx 缓冲，确保流式传输
-header('X-Accel-Buffering: no');
-
 $ch = curl_init();
-$fp = fopen('php://output', 'wb');
+$tmpFile = tmpfile();
 
 curl_setopt_array($ch, [
     CURLOPT_URL => $url,
-    CURLOPT_FILE => $fp,
+    CURLOPT_FILE => $tmpFile,
     CURLOPT_TIMEOUT => 120,
     CURLOPT_CONNECTTIMEOUT => 10,
     CURLOPT_FOLLOWLOCATION => true,
@@ -55,15 +51,28 @@ curl_setopt_array($ch, [
 ]);
 
 curl_exec($ch);
-
 $httpCode = curl_getinfo($ch, CURLINFO_HTTP_CODE);
 $error = curl_error($ch);
 
-fclose($fp);
 curl_close($ch);
 
-if ($error) {
+if ($httpCode !== 200 || $error) {
+    fclose($tmpFile);
     writeLog('ERROR', '代理下载失败', ['url' => substr($url, 0, 80), 'http_code' => $httpCode, 'error' => $error]);
-} else {
-    writeLog('INFO', '代理下载完成', ['url' => substr($url, 0, 80), 'http_code' => $httpCode]);
+    jsonResponse(['success' => false, 'message' => '视频源不可用'], 502);
 }
+
+writeLog('INFO', '代理下载完成', ['url' => substr($url, 0, 80), 'http_code' => $httpCode]);
+
+rewind($tmpFile);
+$stat = fstat($tmpFile);
+header('Content-Type: video/mp4');
+header('Content-Length: ' . $stat['size']);
+header('Access-Control-Allow-Origin: *');
+header('X-Accel-Buffering: no');
+while (!feof($tmpFile)) {
+    echo fread($tmpFile, 1048576);
+    ob_flush();
+    flush();
+}
+fclose($tmpFile);

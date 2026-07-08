@@ -11,3 +11,6 @@ debug.log
 __pycache__/
 backend/config.php
 backend/data/
+utils/config.js
+backend/api/admin/config.json
+.opencode/

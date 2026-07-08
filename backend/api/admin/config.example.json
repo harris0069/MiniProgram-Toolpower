@@ -1,0 +1,5 @@
+{
+  "username": "admin",
+  "password_hash": "YOUR_BCRYPT_HASH",
+  "description": "运行 setup_admin.php 生成正确哈希"
+}

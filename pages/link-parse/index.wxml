@@ -76,23 +76,32 @@
       <text class="video-author">{{authorName || '未知作者'}}</text>
     </view>
 
-    <!-- 清晰度 -->
+    <!-- 清晰度 / 下载进度 -->
     <view class="quality-row">
-      <view
-        wx:for="{{['标清', '高清', '超清']}}"
-        wx:key="*this"
-        class="quality-tag {{selectedQuality === item ? 'active' : ''}} {{!videoUrls[item] ? 'unavailable' : ''}}"
-        bindtap="selectQuality"
-        data-quality="{{item}}">
-        {{item}}
+      <block wx:if="{{!downloading}}">
+        <view
+          wx:for="{{['标清', '高清', '超清']}}"
+          wx:key="*this"
+          class="quality-tag {{selectedQuality === item ? 'active' : ''}} {{!videoUrls[item] ? 'unavailable' : ''}}"
+          bindtap="selectQuality"
+          data-quality="{{item}}">
+          {{item}}
+        </view>
+      </block>
+      <view wx:else class="quality-progress">
+        <view class="progress-bar">
+          <view class="progress-fill" style="width: {{downloadProgress}}%"></view>
+        </view>
+        <text class="progress-text">{{downloadProgress}}%</text>
       </view>
     </view>
 
-    <!-- 下载按钮 -->
-    <view
-      class="download-btn {{downloading ? 'disabled' : ''}}"
-      bindtap="saveToAlbum">
-      <text>{{downloading ? '下载中...' : '保存到相册'}}</text>
+    <!-- 下载 / 取消 -->
+    <view wx:if="{{!downloading}}" class="download-btn" bindtap="saveToAlbum">
+      <text>保存到相册</text>
+    </view>
+    <view wx:else class="download-btn cancel" bindtap="cancelDownload">
+      <text>取消</text>
     </view>
   </view>
 

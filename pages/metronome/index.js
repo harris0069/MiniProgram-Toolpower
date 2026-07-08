@@ -1915,4 +1915,9 @@ WebAudio API：${diagnosis.webAudioSupport.apiExists ? '✅' : '❌'}
     // 
   },
 
+  onShareAppMessage() {
+    return { title: '节拍器 - 精准节奏训练', path: '/pages/metronome/index' };
+  },
+
+
 });

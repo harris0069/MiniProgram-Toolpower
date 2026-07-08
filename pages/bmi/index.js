@@ -249,5 +249,10 @@ Page({
     this.setData({ showLimitModal: true }); 
   },
   hideLimit() { this.setData({ showLimitModal: false }); },
+
+  onShareAppMessage() {
+    return { title: 'BMI计算器 - 健康自测', path: '/pages/bmi/index' };
+  },
+
   
 })

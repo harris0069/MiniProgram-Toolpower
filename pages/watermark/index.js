@@ -1509,5 +1509,10 @@ Page({
   // 页面隐藏 - 返回首页时清空
   onHide() {
     this.clearWatermarkData();
-  }
+  },
+
+  onShareAppMessage() {
+    return { title: '图片加水印 - 保护你的作品', path: '/pages/watermark/index' };
+  },
+
 });

@@ -11,7 +11,7 @@
  *   UsageControl.isPrivilege()         检查是否特权用户（本地缓存）
  */
 
-const API_BASE = 'https://xcx.huangyiling.top';
+const { API_BASE } = require('./config');
 
 class UsageControl {
 

@@ -21,6 +21,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'OPTIONS') {
     exit;
 }
 
+require_once __DIR__ . '/usage_helper.php';
+
 // 健康检查接口
 if (isset($_GET['health'])) {
     jsonResponse([
@@ -35,8 +37,6 @@ if (isset($_GET['health'])) {
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     jsonResponse(['success' => false, 'message' => '仅支持POST请求'], 405);
 }
-
-require_once __DIR__ . '/usage_helper.php';
 
 // 获取输入参数
 $input = json_decode(file_get_contents('php://input'), true);
@@ -179,7 +179,7 @@ function makeApiRequest($apiUrl, $method, $data, $apiType = '') {
     
     curl_setopt_array($ch, [
         CURLOPT_RETURNTRANSFER => true,
-        CURLOPT_TIMEOUT => 15,
+        CURLOPT_TIMEOUT => 30,
         CURLOPT_CONNECTTIMEOUT => 5,
         CURLOPT_FOLLOWLOCATION => true,
         CURLOPT_SSL_VERIFYPEER => false,
